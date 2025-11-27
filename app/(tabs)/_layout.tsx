@@ -1,6 +1,7 @@
 import { colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
     return (
@@ -12,9 +13,14 @@ export default function TabLayout() {
                 tabBarStyle: {
                     backgroundColor: colors.white,
                     borderTopColor: colors.stone200,
-                    height: 60,
-                    paddingBottom: 8,
-                    paddingTop: 8,
+                    height: Platform.OS === 'ios' ? 88 : 70,
+                    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+                    paddingTop: 12,
+                    overflow: 'visible',
+                },
+                tabBarItemStyle: {
+                    paddingVertical: 4,
+                    overflow: 'visible',
                 },
             }}
         >
@@ -41,7 +47,9 @@ export default function TabLayout() {
                 options={{
                     title: '',
                     tabBarIcon: ({ size }) => (
-                        <Ionicons name="add-circle" size={size + 16} color={colors.amber600} />
+                        <View style={{ marginTop: -6 }}>
+                            <Ionicons name="add-circle" size={48} color={colors.amber600} />
+                        </View>
                     ),
                 }}
             />
