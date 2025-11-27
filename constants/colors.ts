@@ -16,8 +16,10 @@ export const colors = {
 
     // Text
     stone800: '#1c1917',
+    stone700: '#44403c',
     stone600: '#57534e',
     stone500: '#78716c',
+    stone400: '#a8a29e',
 
     // Additional colors from mockup
     white: '#ffffff',
