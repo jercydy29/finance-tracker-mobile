@@ -1,7 +1,21 @@
 import { colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+
+// Custom Add Button that floats above the tab bar
+function AddTabButton({ onPress }: { onPress?: () => void }) {
+    return (
+        <Pressable
+            onPress={onPress}
+            style={styles.addButtonContainer}
+        >
+            <View style={styles.addButton}>
+                <Ionicons name="add" size={32} color={colors.white} />
+            </View>
+        </Pressable>
+    );
+}
 
 export default function TabLayout() {
     return (
@@ -16,11 +30,9 @@ export default function TabLayout() {
                     height: Platform.OS === 'ios' ? 88 : 70,
                     paddingBottom: Platform.OS === 'ios' ? 28 : 12,
                     paddingTop: 12,
-                    overflow: 'visible',
                 },
                 tabBarItemStyle: {
                     paddingVertical: 4,
-                    overflow: 'visible',
                 },
             }}
         >
@@ -46,11 +58,7 @@ export default function TabLayout() {
                 name="add"
                 options={{
                     title: '',
-                    tabBarIcon: ({ size }) => (
-                        <View style={{ marginTop: -6 }}>
-                            <Ionicons name="add-circle" size={48} color={colors.amber600} />
-                        </View>
-                    ),
+                    tabBarButton: (props) => <AddTabButton onPress={props.onPress} />,
                 }}
             />
             <Tabs.Screen
@@ -74,3 +82,24 @@ export default function TabLayout() {
         </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+    addButtonContainer: {
+        top: -24,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.amber600,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 8,
+    },
+});
