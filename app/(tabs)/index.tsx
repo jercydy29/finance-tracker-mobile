@@ -1,15 +1,44 @@
 import { colors } from '@/constants/colors';
+import { useTransactions } from '@/hooks/useTransactions';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
+    const { transactions, loading, totals, refetch } = useTransactions();
+
     const currentMonth = new Intl.DateTimeFormat('en-US', {
         month: 'long',
         year: 'numeric'
     }).format(new Date());
 
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(amount);
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+            return 'Today';
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    };
+
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
+        >
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.greeting}>Good morning</Text>
@@ -19,7 +48,7 @@ export default function HomeScreen() {
             {/* Balance Card */}
             <View style={styles.balanceCard}>
                 <Text style={styles.balanceLabel}>Total Balance</Text>
-                <Text style={styles.balanceAmount}>$4,285.18</Text>
+                <Text style={styles.balanceAmount}>{formatCurrency(totals.balance)}</Text>
 
                 <View style={styles.summaryRow}>
                     <View style={styles.summaryItem}>
@@ -28,7 +57,7 @@ export default function HomeScreen() {
                         </View>
                         <View>
                             <Text style={styles.summaryLabel}>Income</Text>
-                            <Text style={styles.summaryAmount}>$5,200</Text>
+                            <Text style={styles.summaryAmount}>{formatCurrency(totals.income)}</Text>
                         </View>
                     </View>
 
@@ -38,7 +67,7 @@ export default function HomeScreen() {
                         </View>
                         <View>
                             <Text style={styles.summaryLabel}>Expenses</Text>
-                            <Text style={styles.summaryAmount}>$914.82</Text>
+                            <Text style={styles.summaryAmount}>{formatCurrency(totals.expenses)}</Text>
                         </View>
                     </View>
                 </View>
@@ -46,12 +75,12 @@ export default function HomeScreen() {
 
             {/* Action Buttons */}
             <View style={styles.actionRow}>
-                <Pressable style={styles.scanButton}>
+                <Pressable style={styles.scanButton} onPress={() => router.push('/scan')}>
                     <Ionicons name="camera-outline" size={24} color={colors.amber600} />
                     <Text style={styles.scanButtonText}>Scan Receipt</Text>
                 </Pressable>
 
-                <Pressable style={styles.addButton}>
+                <Pressable style={styles.addButton} onPress={() => router.push('/add')}>
                     <Ionicons name="add" size={24} color={colors.white} />
                     <Text style={styles.addButtonText}>Add Manual</Text>
                 </Pressable>
@@ -60,47 +89,58 @@ export default function HomeScreen() {
             {/* Recent Transactions */}
             <View style={styles.transactionsHeader}>
                 <Text style={styles.transactionsTitle}>Recent Transactions</Text>
-                <Pressable>
-                    <Text style={styles.seeAllText}>See all</Text>
-                </Pressable>
             </View>
 
             {/* Transaction List */}
-            <View style={styles.transactionsList}>
-                <TransactionItem
-                    title="Coffee Shop"
-                    date="Today"
-                    amount="-$5.50"
-                    isExpense
-                />
-                <TransactionItem
-                    title="Salary"
-                    date="Yesterday"
-                    amount="+$3500.00"
-                    isExpense={false}
-                />
-                <TransactionItem
-                    title="Groceries"
-                    date="Yesterday"
-                    amount="-$89.32"
-                    isExpense
-                />
-            </View>
+            {loading && transactions.length === 0 ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.amber600} />
+                    <Text style={styles.loadingText}>Loading transactions...</Text>
+                </View>
+            ) : transactions.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="wallet-outline" size={64} color={colors.stone400} />
+                    <Text style={styles.emptyText}>No transactions yet</Text>
+                    <Text style={styles.emptySubtext}>Add your first transaction to get started</Text>
+                </View>
+            ) : (
+                <View style={styles.transactionsList}>
+                    {transactions.slice(0, 10).map((transaction) => (
+                        <TransactionItem
+                            key={transaction.id}
+                            title={transaction.description || transaction.category}
+                            category={transaction.category}
+                            date={formatDate(transaction.date)}
+                            amount={parseFloat(transaction.amount)}
+                            isExpense={transaction.type === 'expense'}
+                        />
+                    ))}
+                </View>
+            )}
         </ScrollView>
     );
 }
 
 function TransactionItem({
     title,
+    category,
     date,
     amount,
     isExpense
 }: {
     title: string;
+    category: string;
     date: string;
-    amount: string;
+    amount: number;
     isExpense: boolean;
 }) {
+    const formatAmount = (amt: number, isExp: boolean) => {
+        const formatted = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(amt);
+        return isExp ? `-${formatted}` : `+${formatted}`;
+    };
     return (
         <View style={styles.transactionItem}>
             <View style={[
@@ -115,13 +155,13 @@ function TransactionItem({
             </View>
             <View style={styles.transactionDetails}>
                 <Text style={styles.transactionTitle}>{title}</Text>
-                <Text style={styles.transactionDate}>{date}</Text>
+                <Text style={styles.transactionDate}>{category} • {date}</Text>
             </View>
             <Text style={[
                 styles.transactionAmount,
                 { color: isExpense ? colors.red600 : colors.emerald600 }
             ]}>
-                {amount}
+                {formatAmount(amount, isExpense)}
             </Text>
         </View>
     );
@@ -245,10 +285,28 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.stone800,
     },
-    seeAllText: {
+    loadingContainer: {
+        paddingVertical: 48,
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        fontSize: 16,
+        color: colors.stone600,
+    },
+    emptyContainer: {
+        paddingVertical: 48,
+        alignItems: 'center',
+        gap: 12,
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.stone800,
+    },
+    emptySubtext: {
         fontSize: 14,
-        color: colors.amber600,
-        fontWeight: '500',
+        color: colors.stone500,
     },
     transactionsList: {
         paddingHorizontal: 24,

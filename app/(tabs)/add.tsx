@@ -1,8 +1,9 @@
 import { colors } from '@/constants/colors';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/features/transactions/constants';
 import type { TransactionType } from '@/features/transactions/types';
+import { useTransactions } from '@/hooks/useTransactions';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     Alert,
@@ -18,11 +19,13 @@ import {
 } from 'react-native';
 
 export default function AddScreen() {
+    const { addTransaction } = useTransactions();
     const [type, setType] = useState<TransactionType>('expense');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date());
+    const [saving, setSaving] = useState(false);
 
     // Handle type change and reset category
     const handleTypeChange = (newType: TransactionType) => {
@@ -38,7 +41,7 @@ export default function AddScreen() {
     };
 
     // Handle save transaction
-    const handleSave = () => {
+    const handleSave = async () => {
         // Validation
         if (!amount || parseFloat(amount) <= 0) {
             Alert.alert('Validation Error', 'Please enter a valid amount');
@@ -55,7 +58,6 @@ export default function AddScreen() {
 
         // Create transaction object
         const transaction = {
-            id: Date.now().toString(), // Temporary ID generation
             type,
             category,
             amount,
@@ -63,13 +65,13 @@ export default function AddScreen() {
             date: date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
         };
 
-        // TODO: Save to Supabase later
-        console.log('Transaction to save:', transaction);
+        // Save to Supabase
+        setSaving(true);
+        const result = await addTransaction(transaction);
+        setSaving(false);
 
-        Alert.alert(
-            'Success',
-            'Transaction saved! (Mock - will connect to Supabase later)',
-            [
+        if (result.success) {
+            Alert.alert('Success', 'Transaction added successfully!', [
                 {
                     text: 'OK',
                     onPress: () => {
@@ -78,10 +80,14 @@ export default function AddScreen() {
                         setCategory('');
                         setDescription('');
                         setDate(new Date());
+                        // Navigate back to home
+                        router.push('/');
                     },
                 },
-            ]
-        );
+            ]);
+        } else {
+            Alert.alert('Error', result.error || 'Failed to add transaction');
+        }
     };
 
     return (
@@ -100,116 +106,122 @@ export default function AddScreen() {
                         <Text style={styles.title}>Add Transaction</Text>
                     </View>
 
-                {/* Type Toggle */}
-                <View style={styles.typeContainer}>
-                    <Pressable
-                        style={[
-                            styles.typeButton,
-                            type === 'expense' && styles.typeButtonActiveExpense,
-                            { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-                        ]}
-                        onPress={() => handleTypeChange('expense')}
-                    >
-                        <Text
+                    {/* Type Toggle */}
+                    <View style={styles.typeContainer}>
+                        <Pressable
                             style={[
-                                styles.typeButtonText,
-                                type === 'expense' && styles.typeButtonTextActive,
+                                styles.typeButton,
+                                type === 'expense' && styles.typeButtonActiveExpense,
+                                { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
                             ]}
+                            onPress={() => handleTypeChange('expense')}
                         >
-                            Expense
-                        </Text>
-                    </Pressable>
-                    <Pressable
-                        style={[
-                            styles.typeButton,
-                            type === 'income' && styles.typeButtonActiveIncome,
-                            { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
-                        ]}
-                        onPress={() => handleTypeChange('income')}
-                    >
-                        <Text
+                            <Text
+                                style={[
+                                    styles.typeButtonText,
+                                    type === 'expense' && styles.typeButtonTextActive,
+                                ]}
+                            >
+                                Expense
+                            </Text>
+                        </Pressable>
+                        <Pressable
                             style={[
-                                styles.typeButtonText,
-                                type === 'income' && styles.typeButtonTextActive,
+                                styles.typeButton,
+                                type === 'income' && styles.typeButtonActiveIncome,
+                                { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
                             ]}
+                            onPress={() => handleTypeChange('income')}
                         >
-                            Income
-                        </Text>
-                    </Pressable>
-                </View>
+                            <Text
+                                style={[
+                                    styles.typeButtonText,
+                                    type === 'income' && styles.typeButtonTextActive,
+                                ]}
+                            >
+                                Income
+                            </Text>
+                        </Pressable>
+                    </View>
 
-                {/* Amount Input */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Amount</Text>
-                    <View style={styles.amountInputContainer}>
-                        <Text style={styles.currencySymbol}>$</Text>
+                    {/* Amount Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Amount</Text>
+                        <View style={styles.amountInputContainer}>
+                            <Text style={styles.currencySymbol}>$</Text>
+                            <TextInput
+                                style={styles.amountInput}
+                                value={amount}
+                                onChangeText={setAmount}
+                                placeholder="0.00"
+                                placeholderTextColor={colors.stone400}
+                                keyboardType="decimal-pad"
+                            />
+                        </View>
+                    </View>
+
+                    {/* Category Picker */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Category</Text>
+                        <View style={styles.categoryGrid}>
+                            {(type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(
+                                (cat) => (
+                                    <Pressable
+                                        key={cat}
+                                        style={[
+                                            styles.categoryButton,
+                                            category === cat && styles.categoryButtonActive,
+                                        ]}
+                                        onPress={() => setCategory(cat)}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.categoryButtonText,
+                                                category === cat && styles.categoryButtonTextActive,
+                                            ]}
+                                        >
+                                            {cat}
+                                        </Text>
+                                    </Pressable>
+                                )
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Description Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Description (Optional)</Text>
                         <TextInput
-                            style={styles.amountInput}
-                            value={amount}
-                            onChangeText={setAmount}
-                            placeholder="0.00"
+                            style={styles.textInput}
+                            value={description}
+                            onChangeText={setDescription}
+                            placeholder="Add a note..."
                             placeholderTextColor={colors.stone400}
-                            keyboardType="decimal-pad"
+                            multiline
                         />
                     </View>
-                </View>
 
-                {/* Category Picker */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Category</Text>
-                    <View style={styles.categoryGrid}>
-                        {(type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(
-                            (cat) => (
-                                <Pressable
-                                    key={cat}
-                                    style={[
-                                        styles.categoryButton,
-                                        category === cat && styles.categoryButtonActive,
-                                    ]}
-                                    onPress={() => setCategory(cat)}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.categoryButtonText,
-                                            category === cat && styles.categoryButtonTextActive,
-                                        ]}
-                                    >
-                                        {cat}
-                                    </Text>
-                                </Pressable>
-                            )
-                        )}
+                    {/* Date Picker */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Date</Text>
+                        <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                            accentColor={colors.amber600}
+                        />
                     </View>
-                </View>
-
-                {/* Description Input */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Description (Optional)</Text>
-                    <TextInput
-                        style={styles.textInput}
-                        value={description}
-                        onChangeText={setDescription}
-                        placeholder="Add a note..."
-                        placeholderTextColor={colors.stone400}
-                        multiline
-                    />
-                </View>
-
-                {/* Date Picker */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Date</Text>
-                    <DateTimePicker
-                        value={date}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
-                        accentColor={colors.amber600}
-                    />
-                </View>
 
                     {/* Save Button */}
-                    <Pressable style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>Add Transaction</Text>
+                    <Pressable
+                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        <Text style={styles.saveButtonText}>
+                            {saving ? 'Saving...' : 'Add Transaction'}
+                        </Text>
                     </Pressable>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -339,6 +351,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: 'center',
+    },
+    saveButtonDisabled: {
+        backgroundColor: colors.stone400,
     },
     saveButtonText: {
         fontSize: 16,
