@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import * as FileSystem from 'expo-file-system';
 
 export async function uploadReceiptImage(
     uri: string
@@ -7,14 +8,14 @@ export async function uploadReceiptImage(
         // Generate unique filename
         const filename = `receipt_${Date.now()}.jpg`;
 
-        // Fetch the image and convert to blob
-        const response = await fetch(uri);
-        const blob = await response.blob();
+        // Use the new File API (SDK 54+)
+        const file = new FileSystem.File(uri);
+        const arrayBuffer = await file.arrayBuffer();
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage using ArrayBuffer
         const { data, error } = await supabase.storage
-            .from('receipts') // Make sure this bucket exists in Supabase
-            .upload(filename, blob, {
+            .from('receipts')
+            .upload(filename, arrayBuffer, {
                 contentType: 'image/jpeg',
             });
 
