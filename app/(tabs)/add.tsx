@@ -3,10 +3,12 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/features/transactions/c
 import type { TransactionType } from '@/features/transactions/types';
 import { useTransactions } from '@/hooks/useTransactions';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -19,6 +21,7 @@ import {
 } from 'react-native';
 
 export default function AddScreen() {
+    const { receiptUrl } = useLocalSearchParams<{ receiptUrl?: string }>();
     const { addTransaction } = useTransactions();
     const [type, setType] = useState<TransactionType>('expense');
     const [amount, setAmount] = useState('');
@@ -63,6 +66,7 @@ export default function AddScreen() {
             amount,
             description,
             date: date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
+            receipt_url: receiptUrl || null,
         };
 
         // Save to Supabase
@@ -213,6 +217,24 @@ export default function AddScreen() {
                         />
                     </View>
 
+                    {/* Receipt Preview */}
+                    {receiptUrl && (
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Attached Receipt</Text>
+                            <View style={styles.receiptPreview}>
+                                <Image
+                                    source={{ uri: receiptUrl }}
+                                    style={styles.receiptImage}
+                                    resizeMode="cover"
+                                />
+                                <View style={styles.receiptInfo}>
+                                    <Ionicons name="checkmark-circle" size={20} color={colors.emerald600} />
+                                    <Text style={styles.receiptText}>Receipt attached</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Save Button */}
                     <Pressable
                         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -343,6 +365,29 @@ const styles = StyleSheet.create({
     },
     categoryButtonTextActive: {
         color: colors.white,
+    },
+    receiptPreview: {
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.stone200,
+        gap: 12,
+    },
+    receiptImage: {
+        width: '100%',
+        height: 150,
+        borderRadius: 8,
+    },
+    receiptInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    receiptText: {
+        fontSize: 14,
+        color: colors.emerald600,
+        fontWeight: '500',
     },
     saveButton: {
         marginHorizontal: 24,
