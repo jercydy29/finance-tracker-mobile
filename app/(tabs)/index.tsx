@@ -2,7 +2,7 @@ import { colors } from '@/constants/colors';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
     const { transactions, loading, totals, refetch } = useTransactions();
@@ -108,6 +108,7 @@ export default function HomeScreen() {
                     {transactions.slice(0, 10).map((transaction) => (
                         <TransactionItem
                             key={transaction.id}
+                            transaction={transaction}
                             title={transaction.description || transaction.category}
                             category={transaction.category}
                             date={formatDate(transaction.date)}
@@ -122,12 +123,14 @@ export default function HomeScreen() {
 }
 
 function TransactionItem({
+    transaction,
     title,
     category,
     date,
     amount,
     isExpense
 }: {
+    transaction: any;
     title: string;
     category: string;
     date: string;
@@ -141,8 +144,25 @@ function TransactionItem({
         }).format(amt);
         return isExp ? `-${formatted}` : `+${formatted}`;
     };
+
+    const handlePress = () => {
+        // Navigate to add screen with transaction data for editing
+        router.push({
+            pathname: '/add',
+            params: {
+                id: transaction.id,
+                type: transaction.type,
+                amount: transaction.amount,
+                category: transaction.category,
+                description: transaction.description || '',
+                date: transaction.date,
+                receiptUrl: transaction.receipt_url || '',
+            },
+        });
+    };
+
     return (
-        <View style={styles.transactionItem}>
+        <Pressable style={styles.transactionItem} onPress={handlePress}>
             <View style={[
                 styles.transactionIcon,
                 { backgroundColor: isExpense ? colors.lightPink : colors.mintGreen }
@@ -163,7 +183,7 @@ function TransactionItem({
             ]}>
                 {formatAmount(amount, isExpense)}
             </Text>
-        </View>
+        </Pressable>
     );
 }
 

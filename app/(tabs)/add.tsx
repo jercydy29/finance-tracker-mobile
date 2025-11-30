@@ -22,6 +22,8 @@ import {
 
 export default function AddScreen() {
     const params = useLocalSearchParams<{
+        id?: string;
+        type?: string;
         receiptUrl?: string;
         amount?: string;
         category?: string;
@@ -29,8 +31,9 @@ export default function AddScreen() {
         date?: string;
     }>();
 
-    const { addTransaction } = useTransactions();
-    const [type, setType] = useState<TransactionType>('expense');
+    const { addTransaction, updateTransaction } = useTransactions();
+    const isEditing = !!params.id;
+    const [type, setType] = useState<TransactionType>((params.type as TransactionType) || 'expense');
     const [amount, setAmount] = useState(params.amount || '');
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
@@ -76,13 +79,15 @@ export default function AddScreen() {
             receipt_url: params.receiptUrl || null,
         };
 
-        // Save to Supabase
+        // Save or Update to Supabase
         setSaving(true);
-        const result = await addTransaction(transaction);
+        const result = isEditing
+            ? await updateTransaction(params.id!, transaction)
+            : await addTransaction(transaction);
         setSaving(false);
 
         if (result.success) {
-            Alert.alert('Success', 'Transaction added successfully!', [
+            Alert.alert('Success', `Transaction ${isEditing ? 'updated' : 'added'} successfully!`, [
                 {
                     text: 'OK',
                     onPress: () => {
@@ -91,13 +96,13 @@ export default function AddScreen() {
                         setCategory('');
                         setDescription('');
                         setDate(new Date());
-                        // Navigate back to home
-                        router.push('/');
+                        // Navigate back to home and clear params
+                        router.replace('/');
                     },
                 },
             ]);
         } else {
-            Alert.alert('Error', result.error || 'Failed to add transaction');
+            Alert.alert('Error', result.error || `Failed to ${isEditing ? 'update' : 'add'} transaction`);
         }
     };
 
@@ -114,7 +119,7 @@ export default function AddScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Add Transaction</Text>
+                        <Text style={styles.title}>{isEditing ? 'Edit Transaction' : 'Add Transaction'}</Text>
                     </View>
 
                     {/* Type Toggle */}
@@ -249,7 +254,7 @@ export default function AddScreen() {
                         disabled={saving}
                     >
                         <Text style={styles.saveButtonText}>
-                            {saving ? 'Saving...' : 'Add Transaction'}
+                            {saving ? 'Saving...' : (isEditing ? 'Update Transaction' : 'Add Transaction')}
                         </Text>
                     </Pressable>
                 </ScrollView>
