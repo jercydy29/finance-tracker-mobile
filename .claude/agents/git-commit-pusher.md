@@ -45,6 +45,7 @@ You MUST follow the Conventional Commits specification (conventionalcommits.org)
 - No period at the end of description
 - Body should explain WHAT and WHY, not HOW
 - Reference issue numbers in footer if applicable
+- **NEVER include Claude Code attribution footers** (no "Generated with Claude Code" or "Co-Authored-By: Claude")
 
 ## Your Workflow
 
