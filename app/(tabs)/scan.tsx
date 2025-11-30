@@ -1,5 +1,6 @@
 import { colors } from '@/constants/colors';
 import { uploadReceiptImage } from '@/services/storage';
+import { parseReceiptImage } from '@/services/ocr';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,24 +42,50 @@ export default function ScanScreen() {
         }
     };
 
-    // Use the photo (upload + navigate)
+    // Use the photo (parse with OCR + upload + navigate)
     const usePhoto = async () => {
         if (!capturedImage) return;
 
         setUploading(true);
-        const { url, error } = await uploadReceiptImage(capturedImage);
+
+        // Step 1: Parse receipt with OCR
+        const { data: parsedData, error: ocrError } = await parseReceiptImage(capturedImage);
+
+        // Step 2: Upload image to storage
+        const { url, error: uploadError } = await uploadReceiptImage(capturedImage);
+
         setUploading(false);
 
-        if (url) {
-            // Navigate to add screen with receipt URL
-            router.push({
-                pathname: '/add',
-                params: { receiptUrl: url },
-            });
-            // Reset state
-            setCapturedImage(null);
-        } else {
-            Alert.alert('Upload Failed', error || 'Please try again');
+        if (uploadError) {
+            Alert.alert('Upload Failed', uploadError || 'Please try again');
+            return;
+        }
+
+        // Navigate to add screen with parsed data and receipt URL
+        router.push({
+            pathname: '/add',
+            params: {
+                receiptUrl: url || '',
+                // Pass OCR data if available
+                ...(parsedData && {
+                    amount: parsedData.amount,
+                    category: parsedData.category,
+                    description: parsedData.description,
+                    date: parsedData.date,
+                }),
+            },
+        });
+
+        // Reset state
+        setCapturedImage(null);
+
+        // Show warning if OCR failed but upload succeeded
+        if (ocrError) {
+            Alert.alert(
+                'OCR Warning',
+                'Receipt uploaded but could not auto-fill form. Please enter details manually.',
+                [{ text: 'OK' }]
+            );
         }
     };
 
@@ -111,7 +138,7 @@ export default function ScanScreen() {
                         disabled={uploading}
                     >
                         <Text style={styles.primaryButtonText}>
-                            {uploading ? 'Uploading...' : 'Use Photo'}
+                            {uploading ? 'Processing...' : 'Use Photo'}
                         </Text>
                         {!uploading && <Ionicons name="arrow-forward" size={24} color={colors.white} />}
                     </Pressable>

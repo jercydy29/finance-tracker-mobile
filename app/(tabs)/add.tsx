@@ -21,13 +21,20 @@ import {
 } from 'react-native';
 
 export default function AddScreen() {
-    const { receiptUrl } = useLocalSearchParams<{ receiptUrl?: string }>();
+    const params = useLocalSearchParams<{
+        receiptUrl?: string;
+        amount?: string;
+        category?: string;
+        description?: string;
+        date?: string;
+    }>();
+
     const { addTransaction } = useTransactions();
     const [type, setType] = useState<TransactionType>('expense');
-    const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('');
-    const [description, setDescription] = useState('');
-    const [date, setDate] = useState(new Date());
+    const [amount, setAmount] = useState(params.amount || '');
+    const [category, setCategory] = useState(params.category || '');
+    const [description, setDescription] = useState(params.description || '');
+    const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
     const [saving, setSaving] = useState(false);
 
     // Handle type change and reset category
@@ -66,7 +73,7 @@ export default function AddScreen() {
             amount,
             description,
             date: date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
-            receipt_url: receiptUrl || null,
+            receipt_url: params.receiptUrl || null,
         };
 
         // Save to Supabase
@@ -218,12 +225,12 @@ export default function AddScreen() {
                     </View>
 
                     {/* Receipt Preview */}
-                    {receiptUrl && (
+                    {params.receiptUrl && (
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Attached Receipt</Text>
                             <View style={styles.receiptPreview}>
                                 <Image
-                                    source={{ uri: receiptUrl }}
+                                    source={{ uri: params.receiptUrl }}
                                     style={styles.receiptImage}
                                     resizeMode="cover"
                                 />
