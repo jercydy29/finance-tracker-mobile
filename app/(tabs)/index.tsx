@@ -3,10 +3,12 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
-    const { transactions, loading, totals, refetch } = useTransactions();
+    const { transactions, loading, totals, refetch, deleteTransaction } = useTransactions();
     const isFirstFocus = useRef(true);
 
     // Refetch when screen comes back into focus (not on initial mount)
@@ -19,6 +21,28 @@ export default function HomeScreen() {
             refetch();
         }, [])
     );
+
+    // Handle delete with confirmation
+    const handleDelete = useCallback((id: string, title: string) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Alert.alert(
+            'Delete Transaction',
+            `Are you sure you want to delete "${title}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const result = await deleteTransaction(id);
+                        if (result.success) {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        }
+                    },
+                },
+            ]
+        );
+    }, [deleteTransaction]);
 
     const currentMonth = new Intl.DateTimeFormat('en-US', {
         month: 'long',
@@ -131,6 +155,7 @@ export default function HomeScreen() {
                             description={transaction.description}
                             rawDate={transaction.date}
                             receiptUrl={transaction.receipt_url}
+                            onDelete={handleDelete}
                         />
                     ))}
                 </View>
@@ -150,6 +175,7 @@ function TransactionItem({
     description,
     rawDate,
     receiptUrl,
+    onDelete,
 }: {
     id: string;
     title: string;
@@ -161,7 +187,10 @@ function TransactionItem({
     description: string;
     rawDate: string;
     receiptUrl?: string | null;
+    onDelete: (id: string, title: string) => void;
 }) {
+    const swipeableRef = useRef<Swipeable>(null);
+
     const formatAmount = (amt: number, isExp: boolean) => {
         const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -185,8 +214,31 @@ function TransactionItem({
         });
     };
 
+    const handleDeletePress = () => {
+        swipeableRef.current?.close();
+        onDelete(id, title);
+    };
+
+    const renderRightActions = () => {
+        return (
+            <Pressable
+                style={styles.deleteAction}
+                onPress={handleDeletePress}
+            >
+                <Ionicons name="trash-outline" size={24} color={colors.white} />
+                <Text style={styles.deleteActionText}>Delete</Text>
+            </Pressable>
+        );
+    };
+
     return (
-        <Pressable style={styles.transactionItem} onPress={handlePress}>
+        <Swipeable
+            ref={swipeableRef}
+            renderRightActions={renderRightActions}
+            overshootRight={false}
+            friction={2}
+        >
+            <Pressable style={styles.transactionItem} onPress={handlePress}>
             <View style={[
                 styles.transactionIcon,
                 { backgroundColor: isExpense ? colors.lightPink : colors.mintGreen }
@@ -208,7 +260,8 @@ function TransactionItem({
                 {formatAmount(amount, isExpense)}
             </Text>
             <Ionicons name="chevron-forward" size={20} color={colors.stone400} style={{ marginLeft: 8 }} />
-        </Pressable>
+            </Pressable>
+        </Swipeable>
     );
 }
 
@@ -389,5 +442,20 @@ const styles = StyleSheet.create({
     transactionAmount: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    deleteAction: {
+        backgroundColor: colors.red600,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        marginBottom: 12,
+        borderTopRightRadius: 12,
+        borderBottomRightRadius: 12,
+    },
+    deleteActionText: {
+        color: colors.white,
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 4,
     },
 });
