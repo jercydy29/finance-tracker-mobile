@@ -5,7 +5,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Alert,
     Image,
@@ -20,27 +20,43 @@ import {
     View,
 } from 'react-native';
 
-export default function AddScreen() {
+export default function EditScreen() {
     const params = useLocalSearchParams<{
-        receiptUrl?: string;
-        amount?: string;
-        category?: string;
-        description?: string;
-        date?: string;
+        id: string;
+        type: TransactionType;
+        amount: string;
+        category: string;
+        description: string;
+        date: string;
+        receipt_url?: string;
     }>();
 
-    const { addTransaction } = useTransactions();
-    const [type, setType] = useState<TransactionType>('expense');
+    const { updateTransaction, deleteTransaction } = useTransactions();
+    const [type, setType] = useState<TransactionType>(params.type || 'expense');
     const [amount, setAmount] = useState(params.amount || '');
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
-    // Handle type change and reset category
+    // Sync state when params change (important for tab-based navigation)
+    useEffect(() => {
+        setType(params.type || 'expense');
+        setAmount(params.amount || '');
+        setCategory(params.category || '');
+        setDescription(params.description || '');
+        setDate(params.date ? new Date(params.date) : new Date());
+    }, [params.id, params.type, params.amount, params.category, params.description, params.date]);
+
+    // Handle type change and reset category if needed
     const handleTypeChange = (newType: TransactionType) => {
         setType(newType);
-        setCategory(''); // Reset category when switching types
+        // Reset category if switching types and current category doesn't exist in new type
+        const newCategories = newType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+        if (!newCategories.includes(category as any)) {
+            setCategory('');
+        }
     };
 
     // Handle date change
@@ -50,7 +66,7 @@ export default function AddScreen() {
         }
     };
 
-    // Handle save transaction
+    // Handle save/update transaction
     const handleSave = async () => {
         // Validation
         if (!amount || parseFloat(amount) <= 0) {
@@ -61,44 +77,63 @@ export default function AddScreen() {
             Alert.alert('Validation Error', 'Please select a category');
             return;
         }
-        if (!date) {
-            Alert.alert('Validation Error', 'Please enter a date');
+        if (!params.id) {
+            Alert.alert('Error', 'Transaction ID is missing');
             return;
         }
 
-        // Create transaction object
-        const transaction = {
+        // Create update object
+        const updates = {
             type,
             category,
             amount,
             description,
-            date: date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
-            receipt_url: params.receiptUrl || null,
+            date: date.toISOString().split('T')[0],
         };
 
-        // Save to Supabase
+        // Update in Supabase
         setSaving(true);
-        const result = await addTransaction(transaction);
+        const result = await updateTransaction(params.id, updates);
         setSaving(false);
 
         if (result.success) {
-            Alert.alert('Success', 'Transaction added successfully!', [
+            Alert.alert('Success', 'Transaction updated successfully!', [
                 {
                     text: 'OK',
-                    onPress: () => {
-                        // Reset form
-                        setAmount('');
-                        setCategory('');
-                        setDescription('');
-                        setDate(new Date());
-                        // Navigate back to home (replace to avoid stacking)
-                        router.replace('/');
-                    },
+                    onPress: () => router.back(),
                 },
             ]);
         } else {
-            Alert.alert('Error', result.error || 'Failed to add transaction');
+            Alert.alert('Error', result.error || 'Failed to update transaction');
         }
+    };
+
+    // Handle delete transaction
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete Transaction',
+            'Are you sure you want to delete this transaction? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        if (!params.id) return;
+                        
+                        setDeleting(true);
+                        const result = await deleteTransaction(params.id);
+                        setDeleting(false);
+
+                        if (result.success) {
+                            router.back();
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to delete transaction');
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     return (
@@ -114,7 +149,23 @@ export default function AddScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Add Transaction</Text>
+                        <View style={styles.headerRow}>
+                            <Pressable onPress={() => router.back()} style={styles.backButton}>
+                                <Ionicons name="arrow-back" size={24} color={colors.stone800} />
+                            </Pressable>
+                            <Text style={styles.title}>Edit Transaction</Text>
+                            <Pressable 
+                                onPress={handleDelete} 
+                                style={styles.deleteButton}
+                                disabled={deleting}
+                            >
+                                <Ionicons 
+                                    name="trash-outline" 
+                                    size={24} 
+                                    color={deleting ? colors.stone400 : colors.red600} 
+                                />
+                            </Pressable>
+                        </View>
                     </View>
 
                     {/* Type Toggle */}
@@ -225,12 +276,12 @@ export default function AddScreen() {
                     </View>
 
                     {/* Receipt Preview */}
-                    {params.receiptUrl && (
+                    {params.receipt_url && (
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Attached Receipt</Text>
                             <View style={styles.receiptPreview}>
                                 <Image
-                                    source={{ uri: params.receiptUrl }}
+                                    source={{ uri: params.receipt_url }}
                                     style={styles.receiptImage}
                                     resizeMode="cover"
                                 />
@@ -246,10 +297,10 @@ export default function AddScreen() {
                     <Pressable
                         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                         onPress={handleSave}
-                        disabled={saving}
+                        disabled={saving || deleting}
                     >
                         <Text style={styles.saveButtonText}>
-                            {saving ? 'Saving...' : 'Add Transaction'}
+                            {saving ? 'Saving...' : 'Save Changes'}
                         </Text>
                     </Pressable>
                 </ScrollView>
@@ -271,10 +322,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 20,
     },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        padding: 8,
+        marginLeft: -8,
+    },
     title: {
-        fontSize: 28,
+        fontSize: 20,
         fontWeight: 'bold',
         color: colors.stone800,
+    },
+    deleteButton: {
+        padding: 8,
+        marginRight: -8,
     },
     typeContainer: {
         flexDirection: 'row',

@@ -79,6 +79,12 @@ export default function TabLayout() {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="edit"
+                options={{
+                    href: null, // Hide from tab bar
+                }}
+            />
         </Tabs>
     );
 }

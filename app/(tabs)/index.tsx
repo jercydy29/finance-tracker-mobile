@@ -1,11 +1,24 @@
 import { colors } from '@/constants/colors';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
     const { transactions, loading, totals, refetch } = useTransactions();
+    const isFirstFocus = useRef(true);
+
+    // Refetch when screen comes back into focus (not on initial mount)
+    useFocusEffect(
+        useCallback(() => {
+            if (isFirstFocus.current) {
+                isFirstFocus.current = false;
+                return;
+            }
+            refetch();
+        }, [])
+    );
 
     const currentMonth = new Intl.DateTimeFormat('en-US', {
         month: 'long',
@@ -108,11 +121,16 @@ export default function HomeScreen() {
                     {transactions.slice(0, 10).map((transaction) => (
                         <TransactionItem
                             key={transaction.id}
+                            id={transaction.id}
                             title={transaction.description || transaction.category}
                             category={transaction.category}
                             date={formatDate(transaction.date)}
                             amount={parseFloat(transaction.amount)}
                             isExpense={transaction.type === 'expense'}
+                            type={transaction.type}
+                            description={transaction.description}
+                            rawDate={transaction.date}
+                            receiptUrl={transaction.receipt_url}
                         />
                     ))}
                 </View>
@@ -122,17 +140,27 @@ export default function HomeScreen() {
 }
 
 function TransactionItem({
+    id,
     title,
     category,
     date,
     amount,
-    isExpense
+    isExpense,
+    type,
+    description,
+    rawDate,
+    receiptUrl,
 }: {
+    id: string;
     title: string;
     category: string;
     date: string;
     amount: number;
     isExpense: boolean;
+    type: 'expense' | 'income';
+    description: string;
+    rawDate: string;
+    receiptUrl?: string | null;
 }) {
     const formatAmount = (amt: number, isExp: boolean) => {
         const formatted = new Intl.NumberFormat('en-US', {
@@ -141,8 +169,24 @@ function TransactionItem({
         }).format(amt);
         return isExp ? `-${formatted}` : `+${formatted}`;
     };
+
+    const handlePress = () => {
+        router.push({
+            pathname: '/edit',
+            params: {
+                id,
+                type,
+                amount: amount.toString(),
+                category,
+                description,
+                date: rawDate,
+                receipt_url: receiptUrl || '',
+            },
+        });
+    };
+
     return (
-        <View style={styles.transactionItem}>
+        <Pressable style={styles.transactionItem} onPress={handlePress}>
             <View style={[
                 styles.transactionIcon,
                 { backgroundColor: isExpense ? colors.lightPink : colors.mintGreen }
@@ -163,7 +207,8 @@ function TransactionItem({
             ]}>
                 {formatAmount(amount, isExpense)}
             </Text>
-        </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.stone400} style={{ marginLeft: 8 }} />
+        </Pressable>
     );
 }
 

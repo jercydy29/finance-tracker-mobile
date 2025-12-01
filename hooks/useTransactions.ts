@@ -56,6 +56,33 @@ export function useTransactions() {
         }
     };
 
+    // Update an existing transaction
+    const updateTransaction = async (id: string, updates: Partial<Omit<Transaction, 'id'>>) => {
+        try {
+            const { data, error: updateError } = await supabase
+                .from('transactions')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            // Update local state
+            setTransactions((prev) =>
+                prev.map((t) => (t.id === id ? { ...t, ...data } : t))
+            );
+            return { success: true, data };
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to update transaction';
+            setError(errorMessage);
+            console.error('Error updating transaction:', err);
+            return { success: false, error: errorMessage };
+        }
+    };
+
     // Delete a transaction
     const deleteTransaction = async (id: string) => {
         try {
@@ -105,6 +132,7 @@ export function useTransactions() {
         error,
         totals,
         addTransaction,
+        updateTransaction,
         deleteTransaction,
         refetch: fetchTransactions,
     };
