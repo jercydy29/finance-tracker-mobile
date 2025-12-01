@@ -5,7 +5,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Alert,
     Image,
@@ -36,6 +36,14 @@ export default function AddScreen() {
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
     const [saving, setSaving] = useState(false);
+
+    // Sync form state when URL params change (e.g., new receipt scanned)
+    useEffect(() => {
+        setAmount(params.amount || '');
+        setCategory(params.category || '');
+        setDescription(params.description || '');
+        setDate(params.date ? new Date(params.date) : new Date());
+    }, [params.amount, params.category, params.description, params.date]);
 
     // Handle type change and reset category
     const handleTypeChange = (newType: TransactionType) => {
