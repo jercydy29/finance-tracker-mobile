@@ -1,5 +1,6 @@
 export const colors = {
     // Primary
+    amber400: '#fbbf24',
     amber600: '#d97706',
 
     // Success (income)

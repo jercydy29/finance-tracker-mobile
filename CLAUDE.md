@@ -184,17 +184,22 @@ export const colors = {
 
 **🚧 Phase 4 - Polish & UI/UX (IN PROGRESS):**
 
-### Sprint 1: Core UX Fixes
+### Sprint 1: Core UX Fixes ✅ COMPLETE
 - [x] Transaction tap-to-edit (edit.tsx screen, updateTransaction hook)
 - [x] Swipe-to-delete with haptic feedback
-- [ ] Toast notifications (replace alerts)
-- [ ] Skeleton loading states
+- [x] Fix stale receipt data when scanning new receipts (useEffect sync)
+- [x] Fix Home tab scroll position on tab switch (scroll-to-top on focus)
+- [x] Remove redundant action buttons from Home (Scan/Add Manual)
+- [x] Pull-to-refresh on transaction list
+- [x] Pagination for transaction list (FlatList with loadMore, 10 items per page)
+- [x] Month-based filtering with MonthPicker modal (3x4 grid, year navigation)
 
-### Sprint 2: Scan Experience
-- [ ] OCR progress indicator (step-by-step feedback)
-- [ ] Parsed data preview before navigation
-- [ ] Flash toggle for camera
-- [ ] Error recovery UX
+### Sprint 2: Scan Experience ✅ COMPLETE
+- [x] OCR progress indicator (step-by-step feedback overlay)
+- [x] Flash toggle for camera
+- [x] Error recovery UX (retry option, contextual alerts)
+- [x] Haptic feedback for scan actions
+- [ ] Parsed data preview before navigation (deferred - alert feedback sufficient for now)
 
 ### Sprint 3: Statistics & Settings
 - [ ] Connect real data to stats screen

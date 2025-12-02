@@ -37,6 +37,7 @@ export default function EditScreen() {
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
+    const [receiptUrl, setReceiptUrl] = useState(params.receipt_url || '');
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -47,7 +48,24 @@ export default function EditScreen() {
         setCategory(params.category || '');
         setDescription(params.description || '');
         setDate(params.date ? new Date(params.date) : new Date());
-    }, [params.id, params.type, params.amount, params.category, params.description, params.date]);
+        setReceiptUrl(params.receipt_url || '');
+    }, [params.id, params.type, params.amount, params.category, params.description, params.date, params.receipt_url]);
+
+    // Handle removing the receipt
+    const handleRemoveReceipt = () => {
+        Alert.alert(
+            'Remove Receipt',
+            'Are you sure you want to remove the attached receipt?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: () => setReceiptUrl(''),
+                },
+            ]
+        );
+    };
 
     // Handle type change and reset category if needed
     const handleTypeChange = (newType: TransactionType) => {
@@ -89,6 +107,7 @@ export default function EditScreen() {
             amount,
             description,
             date: date.toISOString().split('T')[0],
+            receipt_url: receiptUrl || null,
         };
 
         // Update in Supabase
@@ -276,12 +295,18 @@ export default function EditScreen() {
                     </View>
 
                     {/* Receipt Preview */}
-                    {params.receipt_url && (
+                    {receiptUrl && (
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Attached Receipt</Text>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.labelInRow}>Attached Receipt</Text>
+                                <Pressable onPress={handleRemoveReceipt} style={styles.removeButton}>
+                                    <Ionicons name="close-circle" size={20} color={colors.red600} />
+                                    <Text style={styles.removeButtonText}>Remove</Text>
+                                </Pressable>
+                            </View>
                             <View style={styles.receiptPreview}>
                                 <Image
-                                    source={{ uri: params.receipt_url }}
+                                    source={{ uri: receiptUrl }}
                                     style={styles.receiptImage}
                                     resizeMode="cover"
                                 />
@@ -378,6 +403,27 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.stone700,
         marginBottom: 8,
+    },
+    labelInRow: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.stone700,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    removeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    removeButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.red600,
     },
     amountInputContainer: {
         flexDirection: 'row',

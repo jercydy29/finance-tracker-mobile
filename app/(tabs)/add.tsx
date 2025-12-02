@@ -19,6 +19,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function AddScreen() {
     const params = useLocalSearchParams<{
@@ -35,6 +36,7 @@ export default function AddScreen() {
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
+    const [receiptUrl, setReceiptUrl] = useState(params.receiptUrl || '');
     const [saving, setSaving] = useState(false);
 
     // Sync form state when URL params change (e.g., new receipt scanned)
@@ -43,7 +45,30 @@ export default function AddScreen() {
         setCategory(params.category || '');
         setDescription(params.description || '');
         setDate(params.date ? new Date(params.date) : new Date());
-    }, [params.amount, params.category, params.description, params.date]);
+        setReceiptUrl(params.receiptUrl || '');
+    }, [params.amount, params.category, params.description, params.date, params.receiptUrl]);
+
+    // Handle removing the receipt and clearing OCR-populated fields
+    const handleRemoveReceipt = () => {
+        Alert.alert(
+            'Remove Receipt',
+            'This will also clear the auto-filled fields (amount, category, description, date). Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: () => {
+                        setReceiptUrl('');
+                        setAmount('');
+                        setCategory('');
+                        setDescription('');
+                        setDate(new Date());
+                    },
+                },
+            ]
+        );
+    };
 
     // Handle type change and reset category
     const handleTypeChange = (newType: TransactionType) => {
@@ -81,7 +106,7 @@ export default function AddScreen() {
             amount,
             description,
             date: date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
-            receipt_url: params.receiptUrl || null,
+            receipt_url: receiptUrl || null,
         };
 
         // Save to Supabase
@@ -233,12 +258,18 @@ export default function AddScreen() {
                     </View>
 
                     {/* Receipt Preview */}
-                    {params.receiptUrl && (
+                    {receiptUrl && (
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Attached Receipt</Text>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.labelInRow}>Attached Receipt</Text>
+                                <Pressable onPress={handleRemoveReceipt} style={styles.removeButton}>
+                                    <Ionicons name="close-circle" size={20} color={colors.red600} />
+                                    <Text style={styles.removeButtonText}>Remove</Text>
+                                </Pressable>
+                            </View>
                             <View style={styles.receiptPreview}>
                                 <Image
-                                    source={{ uri: params.receiptUrl }}
+                                    source={{ uri: receiptUrl }}
                                     style={styles.receiptImage}
                                     resizeMode="cover"
                                 />
@@ -322,6 +353,27 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.stone700,
         marginBottom: 8,
+    },
+    labelInRow: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.stone700,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    removeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    removeButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.red600,
     },
     amountInputContainer: {
         flexDirection: 'row',

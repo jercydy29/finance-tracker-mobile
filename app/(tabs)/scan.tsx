@@ -6,18 +6,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function ScanScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [flashEnabled, setFlashEnabled] = useState(false);
+    const [processingStep, setProcessingStep] = useState<string | null>(null);
     const cameraRef = useRef<CameraView>(null);
 
     // Take photo with camera
     const takePicture = async () => {
         if (cameraRef.current) {
             try {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 const photo = await cameraRef.current.takePictureAsync();
                 if (photo) {
                     setCapturedImage(photo.uri);
@@ -31,6 +35,7 @@ export default function ScanScreen() {
 
     // Pick from gallery
     const pickImage = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
@@ -38,6 +43,7 @@ export default function ScanScreen() {
         });
 
         if (!result.canceled) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setCapturedImage(result.assets[0].uri);
         }
     };
@@ -49,43 +55,75 @@ export default function ScanScreen() {
         setUploading(true);
 
         // Step 1: Parse receipt with OCR
+        setProcessingStep('Analyzing receipt...');
         const { data: parsedData, error: ocrError } = await parseReceiptImage(capturedImage);
 
         // Step 2: Upload image to storage
+        setProcessingStep('Uploading image...');
         const { url, error: uploadError } = await uploadReceiptImage(capturedImage);
 
+        setProcessingStep(null);
         setUploading(false);
 
         if (uploadError) {
-            Alert.alert('Upload Failed', uploadError || 'Please try again');
+            Alert.alert(
+                'Upload Failed', 
+                uploadError || 'Please try again',
+                [
+                    { text: 'Try Again', onPress: usePhoto },
+                    { text: 'Cancel', style: 'cancel' },
+                ]
+            );
             return;
         }
 
-        // Navigate to add screen with parsed data and receipt URL
+        // Build navigation params
+        const navParams: Record<string, string> = {
+            receiptUrl: url || '',
+        };
+
+        // Add parsed data if available
+        if (parsedData) {
+            if (parsedData.amount) navParams.amount = parsedData.amount;
+            if (parsedData.category) navParams.category = parsedData.category;
+            if (parsedData.description) navParams.description = parsedData.description;
+            if (parsedData.date) navParams.date = parsedData.date;
+        }
+
+        // Navigate to add screen with success haptic
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.push({
             pathname: '/add',
-            params: {
-                receiptUrl: url || '',
-                // Pass OCR data if available
-                ...(parsedData && {
-                    amount: parsedData.amount,
-                    category: parsedData.category,
-                    description: parsedData.description,
-                    date: parsedData.date,
-                }),
-            },
+            params: navParams,
         });
 
         // Reset state
         setCapturedImage(null);
 
-        // Show warning if OCR failed but upload succeeded
+        // Show contextual feedback based on what was parsed
         if (ocrError) {
             Alert.alert(
-                'OCR Warning',
-                'Receipt uploaded but could not auto-fill form. Please enter details manually.',
+                'Manual Entry Required',
+                'Could not read receipt automatically. Please fill in the details.',
                 [{ text: 'OK' }]
             );
+        } else if (parsedData) {
+            // Check which fields were successfully parsed
+            const parsedFields = [];
+            if (parsedData.amount) parsedFields.push('amount');
+            if (parsedData.category) parsedFields.push('category');
+            if (parsedData.description) parsedFields.push('merchant');
+            if (parsedData.date) parsedFields.push('date');
+            
+            if (parsedFields.length < 4) {
+                const missingFields = ['amount', 'category', 'merchant', 'date']
+                    .filter(f => !parsedFields.includes(f));
+                Alert.alert(
+                    'Partial Data Extracted',
+                    `Please verify and fill in: ${missingFields.join(', ')}`,
+                    [{ text: 'OK' }]
+                );
+            }
         }
     };
 
@@ -122,6 +160,16 @@ export default function ScanScreen() {
             <View style={styles.container}>
                 <Image source={{ uri: capturedImage }} style={styles.preview} resizeMode="contain" />
 
+                {/* Processing overlay */}
+                {uploading && processingStep && (
+                    <View style={styles.processingOverlay}>
+                        <View style={styles.processingCard}>
+                            <ActivityIndicator size="large" color={colors.amber600} />
+                            <Text style={styles.processingText}>{processingStep}</Text>
+                        </View>
+                    </View>
+                )}
+
                 <View style={styles.previewControls}>
                     <Pressable
                         style={styles.secondaryButton}
@@ -150,7 +198,7 @@ export default function ScanScreen() {
     // Camera mode
     return (
         <View style={styles.container}>
-            <CameraView ref={cameraRef} style={styles.camera} facing="back">
+            <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashEnabled ? 'on' : 'off'}>
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.headerText}>Position receipt in frame</Text>
@@ -172,7 +220,19 @@ export default function ScanScreen() {
                         <View style={styles.captureButtonInner} />
                     </Pressable>
 
-                    <View style={styles.galleryButton} />
+                    <Pressable 
+                        style={styles.flashButton} 
+                        onPress={() => setFlashEnabled(!flashEnabled)}
+                    >
+                        <Ionicons 
+                            name={flashEnabled ? 'flash' : 'flash-off'} 
+                            size={28} 
+                            color={flashEnabled ? colors.amber400 : colors.white} 
+                        />
+                        <Text style={styles.controlText}>
+                            {flashEnabled ? 'Flash On' : 'Flash Off'}
+                        </Text>
+                    </Pressable>
                 </View>
             </CameraView>
         </View>
@@ -264,6 +324,11 @@ const styles = StyleSheet.create({
         gap: 4,
         width: 80,
     },
+    flashButton: {
+        alignItems: 'center',
+        gap: 4,
+        width: 80,
+    },
     controlText: {
         fontSize: 12,
         color: colors.white,
@@ -334,5 +399,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: colors.white,
+    },
+    processingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    processingCard: {
+        backgroundColor: colors.white,
+        paddingHorizontal: 32,
+        paddingVertical: 24,
+        borderRadius: 16,
+        alignItems: 'center',
+        gap: 16,
+        marginHorizontal: 48,
+    },
+    processingText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.stone800,
+        textAlign: 'center',
     },
 });

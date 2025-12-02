@@ -1,25 +1,51 @@
 import { colors } from '@/constants/colors';
 import { useTransactions } from '@/hooks/useTransactions';
+import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, FlatList, StyleSheet, Text, View, SafeAreaView } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
-    const { transactions, loading, totals, refetch, deleteTransaction } = useTransactions();
+    const {
+        transactions,
+        loading,
+        loadingMore,
+        hasMore,
+        totals,
+        refetch,
+        deleteTransaction,
+        loadMore,
+        monthLabel,
+        isCurrentMonth,
+        hasPreviousMonth,
+        goToPreviousMonth,
+        goToNextMonth,
+        selectedMonth,
+        setMonth,
+        hasTransactionsInMonth,
+        getPreviousYearWithTransactions,
+        getNextYearWithTransactions,
+        availableYears,
+    } = useTransactions();
     const isFirstFocus = useRef(true);
+    const flatListRef = useRef<FlatList>(null);
+    const [monthPickerVisible, setMonthPickerVisible] = useState(false);
 
-    // Refetch when screen comes back into focus (not on initial mount)
+    // Refetch and scroll to top when screen comes back into focus (not on initial mount)
     useFocusEffect(
         useCallback(() => {
+            // Always scroll to top when tab is focused
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+
             if (isFirstFocus.current) {
                 isFirstFocus.current = false;
                 return;
             }
             refetch();
-        }, [])
+        }, [refetch])
     );
 
     // Handle delete with confirmation
@@ -44,10 +70,23 @@ export default function HomeScreen() {
         );
     }, [deleteTransaction]);
 
-    const currentMonth = new Intl.DateTimeFormat('en-US', {
-        month: 'long',
-        year: 'numeric'
-    }).format(new Date());
+    // Handle month navigation with haptic feedback
+    const handlePreviousMonth = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        goToPreviousMonth();
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, [goToPreviousMonth]);
+
+    const handleNextMonth = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        goToNextMonth();
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, [goToNextMonth]);
+
+    const handleMonthSelect = useCallback((year: number, month: number) => {
+        setMonth(year, month);
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, [setMonth]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -71,20 +110,17 @@ export default function HomeScreen() {
         }
     };
 
-    return (
-        <ScrollView
-            style={styles.container}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
-        >
+    // Header component for FlatList
+    const ListHeader = () => (
+        <>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.greeting}>Good morning</Text>
-                <Text style={styles.month}>{currentMonth}</Text>
+                <Text style={styles.greeting}>Your Finances</Text>
             </View>
 
             {/* Balance Card */}
             <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={styles.balanceLabel}>Monthly Balance</Text>
                 <Text style={styles.balanceAmount}>{formatCurrency(totals.balance)}</Text>
 
                 <View style={styles.summaryRow}>
@@ -110,57 +146,121 @@ export default function HomeScreen() {
                 </View>
             </View>
 
-            {/* Action Buttons */}
-            <View style={styles.actionRow}>
-                <Pressable style={styles.scanButton} onPress={() => router.push('/scan')}>
-                    <Ionicons name="camera-outline" size={24} color={colors.amber600} />
-                    <Text style={styles.scanButtonText}>Scan Receipt</Text>
-                </Pressable>
-
-                <Pressable style={styles.addButton} onPress={() => router.push('/add')}>
-                    <Ionicons name="add" size={24} color={colors.white} />
-                    <Text style={styles.addButtonText}>Add Manual</Text>
-                </Pressable>
-            </View>
-
-            {/* Recent Transactions */}
+            {/* Transactions Header with Month Navigation */}
             <View style={styles.transactionsHeader}>
-                <Text style={styles.transactionsTitle}>Recent Transactions</Text>
+                <Text style={styles.transactionsTitle}>Transactions</Text>
+                <View style={styles.monthNav}>
+                    <Pressable
+                        onPress={handlePreviousMonth}
+                        style={[styles.monthNavButton, !hasPreviousMonth && styles.monthNavButtonDisabled]}
+                        disabled={!hasPreviousMonth}
+                    >
+                        <Ionicons
+                            name="chevron-back"
+                            size={20}
+                            color={hasPreviousMonth ? colors.stone800 : colors.stone300}
+                        />
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setMonthPickerVisible(true)}
+                        style={styles.monthButton}
+                    >
+                        <Text style={styles.monthText}>{monthLabel}</Text>
+                        <Ionicons name="chevron-down" size={16} color={colors.stone500} />
+                    </Pressable>
+                    <Pressable
+                        onPress={handleNextMonth}
+                        style={[styles.monthNavButton, isCurrentMonth && styles.monthNavButtonDisabled]}
+                        disabled={isCurrentMonth}
+                    >
+                        <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={isCurrentMonth ? colors.stone300 : colors.stone800}
+                        />
+                    </Pressable>
+                </View>
             </View>
+        </>
+    );
 
-            {/* Transaction List */}
-            {loading && transactions.length === 0 ? (
+    // Footer component (loading more indicator)
+    const ListFooter = () => {
+        if (!loadingMore) return null;
+        return (
+            <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color={colors.amber600} />
+                <Text style={styles.loadingMoreText}>Loading more...</Text>
+            </View>
+        );
+    };
+
+    // Empty state component
+    const ListEmpty = () => {
+        if (loading) {
+            return (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.amber600} />
                     <Text style={styles.loadingText}>Loading transactions...</Text>
                 </View>
-            ) : transactions.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="wallet-outline" size={64} color={colors.stone400} />
-                    <Text style={styles.emptyText}>No transactions yet</Text>
-                    <Text style={styles.emptySubtext}>Add your first transaction to get started</Text>
-                </View>
-            ) : (
-                <View style={styles.transactionsList}>
-                    {transactions.slice(0, 10).map((transaction) => (
-                        <TransactionItem
-                            key={transaction.id}
-                            id={transaction.id}
-                            title={transaction.description || transaction.category}
-                            category={transaction.category}
-                            date={formatDate(transaction.date)}
-                            amount={parseFloat(transaction.amount)}
-                            isExpense={transaction.type === 'expense'}
-                            type={transaction.type}
-                            description={transaction.description}
-                            rawDate={transaction.date}
-                            receiptUrl={transaction.receipt_url}
-                            onDelete={handleDelete}
-                        />
-                    ))}
-                </View>
-            )}
-        </ScrollView>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="calendar-outline" size={64} color={colors.stone400} />
+                <Text style={styles.emptyText}>No transactions this month</Text>
+                <Text style={styles.emptySubtext}>Add a transaction or browse other months</Text>
+            </View>
+        );
+    };
+
+    // Render each transaction item
+    const renderTransaction = ({ item: transaction }: { item: typeof transactions[0] }) => (
+        <TransactionItem
+            id={transaction.id}
+            title={transaction.description || transaction.category}
+            category={transaction.category}
+            date={formatDate(transaction.date)}
+            amount={parseFloat(transaction.amount)}
+            isExpense={transaction.type === 'expense'}
+            type={transaction.type}
+            description={transaction.description}
+            rawDate={transaction.date}
+            receiptUrl={transaction.receipt_url}
+            onDelete={handleDelete}
+        />
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <FlatList
+                ref={flatListRef}
+                data={transactions}
+                renderItem={renderTransaction}
+                keyExtractor={(item) => item.id}
+                ListHeaderComponent={ListHeader}
+                ListFooterComponent={ListFooter}
+                ListEmptyComponent={ListEmpty}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <RefreshControl refreshing={loading && transactions.length > 0} onRefresh={refetch} />
+                }
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.3}
+            />
+            
+            <MonthPicker
+                visible={monthPickerVisible}
+                onClose={() => setMonthPickerVisible(false)}
+                selectedYear={selectedMonth.year}
+                selectedMonth={selectedMonth.month}
+                onSelectMonth={handleMonthSelect}
+                hasTransactionsInMonth={hasTransactionsInMonth}
+                getPreviousYearWithTransactions={getPreviousYearWithTransactions}
+                getNextYearWithTransactions={getNextYearWithTransactions}
+                availableYears={availableYears}
+            />
+        </SafeAreaView>
     );
 }
 
@@ -270,20 +370,45 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.stone50,
     },
+    listContent: {
+        flexGrow: 1,
+        paddingBottom: 24,
+    },
     header: {
-        paddingTop: 60,
+        paddingTop: 16,
         paddingHorizontal: 24,
-        paddingBottom: 20,
+        paddingBottom: 12,
     },
     greeting: {
-        fontSize: 16,
-        color: colors.stone600,
-        marginBottom: 4,
-    },
-    month: {
         fontSize: 28,
         fontWeight: 'bold',
         color: colors.stone800,
+    },
+    monthNav: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    monthNavButton: {
+        padding: 6,
+        borderRadius: 6,
+    },
+    monthNavButtonDisabled: {
+        opacity: 0.5,
+    },
+    monthButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        backgroundColor: colors.stone100,
+    },
+    monthText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.stone700,
     },
     balanceCard: {
         backgroundColor: colors.gray700,
@@ -333,44 +458,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.white,
     },
-    actionRow: {
-        flexDirection: 'row',
-        paddingHorizontal: 24,
-        gap: 12,
-        marginBottom: 24,
-    },
-    scanButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 16,
-        gap: 8,
-        borderWidth: 1,
-        borderColor: colors.amber600,
-    },
-    scanButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.amber600,
-    },
-    addButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.amber600,
-        borderRadius: 12,
-        padding: 16,
-        gap: 8,
-    },
-    addButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.white,
-    },
     transactionsHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -382,6 +469,17 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: colors.stone800,
+    },
+    loadingMoreContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 16,
+        gap: 8,
+    },
+    loadingMoreText: {
+        fontSize: 14,
+        color: colors.stone500,
     },
     loadingContainer: {
         paddingVertical: 48,
@@ -406,14 +504,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.stone500,
     },
-    transactionsList: {
-        paddingHorizontal: 24,
-        paddingBottom: 24,
-    },
     transactionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.white,
+        marginHorizontal: 24,
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
@@ -449,6 +544,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: 80,
         marginBottom: 12,
+        marginRight: 24,
         borderTopRightRadius: 12,
         borderBottomRightRadius: 12,
     },
