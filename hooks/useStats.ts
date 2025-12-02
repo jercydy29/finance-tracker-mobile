@@ -1,0 +1,275 @@
+import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/services/supabase';
+
+type CategoryBreakdown = {
+    category: string;
+    amount: number;
+    percentage: number;
+    color: string;
+};
+
+type MonthlyTrend = {
+    month: string;
+    label: string;
+    expenses: number;
+    income: number;
+};
+
+type StatsData = {
+    income: number;
+    expenses: number;
+    balance: number;
+    categoryBreakdown: CategoryBreakdown[];
+    monthlyTrend: MonthlyTrend[];
+};
+
+// Colors for category breakdown chart
+const CATEGORY_COLORS: Record<string, string> = {
+    Food: '#f59e0b',
+    Transport: '#06b6d4',
+    Shopping: '#ec4899',
+    Entertainment: '#8b5cf6',
+    Utilities: '#10b981',
+    Health: '#ef4444',
+    Education: '#3b82f6',
+    Other: '#6b7280',
+    // Income categories
+    Salary: '#059669',
+    Freelance: '#10b981',
+    Investments: '#14b8a6',
+    Gifts: '#f59e0b',
+};
+
+export function useStats() {
+    const [stats, setStats] = useState<StatsData>({
+        income: 0,
+        expenses: 0,
+        balance: 0,
+        categoryBreakdown: [],
+        monthlyTrend: [],
+    });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
+    // Selected month state (defaults to current month)
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        return { year: now.getFullYear(), month: now.getMonth() };
+    });
+
+    // Available months with transactions (for month picker)
+    const [availableMonths, setAvailableMonths] = useState<Set<string>>(new Set());
+    const [availableYears, setAvailableYears] = useState<number[]>([]);
+
+    // Fetch available months (months that have transactions)
+    const fetchAvailableMonths = useCallback(async () => {
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('transactions')
+                .select('date');
+
+            if (fetchError) throw fetchError;
+
+            const monthsSet = new Set<string>();
+            const yearsSet = new Set<number>();
+
+            (data || []).forEach((t) => {
+                const date = new Date(t.date);
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                monthsSet.add(`${year}-${month}`);
+                yearsSet.add(year);
+            });
+
+            setAvailableMonths(monthsSet);
+            setAvailableYears(Array.from(yearsSet).sort((a, b) => a - b));
+        } catch (err) {
+            console.error('Error fetching available months:', err);
+        }
+    }, []);
+
+    // Get date range for selected month
+    const getMonthDateRange = useCallback(() => {
+        const startDate = new Date(selectedMonth.year, selectedMonth.month, 1);
+        const endDate = new Date(selectedMonth.year, selectedMonth.month + 1, 0);
+        
+        return {
+            start: startDate.toISOString().split('T')[0],
+            end: endDate.toISOString().split('T')[0],
+        };
+    }, [selectedMonth]);
+
+    // Fetch stats for selected month
+    const fetchStats = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const { start, end } = getMonthDateRange();
+
+            // Fetch all transactions for the month
+            const { data: monthData, error: monthError } = await supabase
+                .from('transactions')
+                .select('*')
+                .gte('date', start)
+                .lte('date', end);
+
+            if (monthError) throw monthError;
+
+            // Calculate totals
+            let income = 0;
+            let expenses = 0;
+            const categoryTotals: Record<string, number> = {};
+
+            (monthData || []).forEach((t) => {
+                const amount = parseFloat(t.amount);
+                if (t.type === 'income') {
+                    income += amount;
+                } else {
+                    expenses += amount;
+                    // Track expense categories
+                    categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amount;
+                }
+            });
+
+            // Build category breakdown (sorted by amount descending)
+            const categoryBreakdown: CategoryBreakdown[] = Object.entries(categoryTotals)
+                .map(([category, amount]) => ({
+                    category,
+                    amount,
+                    percentage: expenses > 0 ? Math.round((amount / expenses) * 100) : 0,
+                    color: CATEGORY_COLORS[category] || '#6b7280',
+                }))
+                .sort((a, b) => b.amount - a.amount);
+
+            // Fetch last 6 months for trend
+            const trendMonths: MonthlyTrend[] = [];
+            for (let i = 5; i >= 0; i--) {
+                const trendDate = new Date(selectedMonth.year, selectedMonth.month - i, 1);
+                const trendStart = trendDate.toISOString().split('T')[0];
+                const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+
+                const { data: trendData } = await supabase
+                    .from('transactions')
+                    .select('type, amount')
+                    .gte('date', trendStart)
+                    .lte('date', trendEnd);
+
+                let monthIncome = 0;
+                let monthExpenses = 0;
+
+                (trendData || []).forEach((t) => {
+                    const amt = parseFloat(t.amount);
+                    if (t.type === 'income') {
+                        monthIncome += amt;
+                    } else {
+                        monthExpenses += amt;
+                    }
+                });
+
+                trendMonths.push({
+                    month: `${trendDate.getFullYear()}-${trendDate.getMonth()}`,
+                    label: trendDate.toLocaleDateString('en-US', { month: 'short' }),
+                    expenses: monthExpenses,
+                    income: monthIncome,
+                });
+            }
+
+            setStats({
+                income,
+                expenses,
+                balance: income - expenses,
+                categoryBreakdown,
+                monthlyTrend: trendMonths,
+            });
+        // Also refresh available months
+            fetchAvailableMonths();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+            console.error('Error fetching stats:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [getMonthDateRange, selectedMonth, fetchAvailableMonths]);
+
+    // Navigate months
+    const goToPreviousMonth = useCallback(() => {
+        setSelectedMonth((prev) => {
+            if (prev.month === 0) {
+                return { year: prev.year - 1, month: 11 };
+            }
+            return { year: prev.year, month: prev.month - 1 };
+        });
+    }, []);
+
+    const goToNextMonth = useCallback(() => {
+        setSelectedMonth((prev) => {
+            if (prev.month === 11) {
+                return { year: prev.year + 1, month: 0 };
+            }
+            return { year: prev.year, month: prev.month + 1 };
+        });
+    }, []);
+
+    // Set month directly (for month picker)
+    const setMonth = useCallback((year: number, month: number) => {
+        setSelectedMonth({ year, month });
+    }, []);
+
+    // Check if a specific month has transactions
+    const hasTransactionsInMonth = useCallback((year: number, month: number) => {
+        return availableMonths.has(`${year}-${month}`);
+    }, [availableMonths]);
+
+    // Get previous year with transactions
+    const getPreviousYearWithTransactions = useCallback((currentYear: number) => {
+        const sortedYears = availableYears.filter(y => y < currentYear).sort((a, b) => b - a);
+        return sortedYears[0] || null;
+    }, [availableYears]);
+
+    // Get next year with transactions
+    const getNextYearWithTransactions = useCallback((currentYear: number) => {
+        const sortedYears = availableYears.filter(y => y > currentYear).sort((a, b) => a - b);
+        return sortedYears[0] || null;
+    }, [availableYears]);
+
+    // Check if we're on current month
+    const isCurrentMonth = useCallback(() => {
+        const now = new Date();
+        return selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
+    }, [selectedMonth]);
+
+    // Get formatted month label
+    const getMonthLabel = useCallback(() => {
+        const date = new Date(selectedMonth.year, selectedMonth.month);
+        return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+    }, [selectedMonth]);
+
+    // Fetch when month changes
+    useEffect(() => {
+        fetchStats();
+    }, [selectedMonth]);
+
+    // Fetch available months on mount
+    useEffect(() => {
+        fetchAvailableMonths();
+    }, []);
+
+    return {
+        stats,
+        loading,
+        error,
+        selectedMonth,
+        monthLabel: getMonthLabel(),
+        isCurrentMonth: isCurrentMonth(),
+        goToPreviousMonth,
+        goToNextMonth,
+        setMonth,
+        hasTransactionsInMonth,
+        getPreviousYearWithTransactions,
+        getNextYearWithTransactions,
+        availableYears,
+        refetch: fetchStats,
+    };
+}

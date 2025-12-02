@@ -201,11 +201,15 @@ export const colors = {
 - [x] Haptic feedback for scan actions
 - [ ] Parsed data preview before navigation (deferred - alert feedback sufficient for now)
 
-### Sprint 3: Statistics & Settings
-- [ ] Connect real data to stats screen
-- [ ] Interactive charts (react-native-chart-kit)
-- [ ] Build out settings screen
-- [ ] Currency/preferences
+### Sprint 3: Statistics & Settings ✅ COMPLETE
+- [x] Connect real data to stats screen (useStats hook)
+- [x] Month navigation on stats screen
+- [x] Category breakdown with real percentages
+- [x] Monthly expense trend (last 6 months bar chart)
+- [x] Net balance card
+- [x] Build out settings screen (export, clear data, about, feedback)
+- [ ] Interactive charts (react-native-chart-kit) - deferred, current charts sufficient
+- [ ] Currency/preferences - deferred for future sprint
 
 ### Sprint 4: Polish & Animation
 - [ ] Haptic feedback throughout
