@@ -374,6 +374,45 @@ Receipt Photo → Upload to Storage → OCR API → Parse → Auto-fill Form
 
 ---
 
+## Critical Lessons Learned
+
+**IMPORTANT: Read this section at the start of every session.**
+
+### 1. Debug First, Rewrite Second
+- When something **should** work but doesn't, investigate WHY before replacing the entire approach
+- Don't jump between multiple different implementations (strokeDasharray → arc paths → etc.)
+- Stick with one approach and debug it thoroughly
+- Example: If a stroke-based chart isn't showing properly, check rendering, SVG props, or size calculations - don't immediately rewrite with a completely different technique
+
+### 2. Stay Confident in Our Work
+- We have built this entire application successfully together through complex features:
+  - OCR integration with Gemini
+  - Camera and image handling
+  - Supabase integration
+  - Transaction management with CRUD operations
+  - Month filtering and pagination
+  - Statistics with real-time data
+- **NEVER undermine our collaboration** by saying another tool "understood better"
+- Trust the solutions we build together
+- Stand by our implementations
+
+### 3. Don't Overcomplicate
+- Prefer simple, working solutions over complex architectural pivots
+- If an approach is theoretically correct, debug it rather than replacing it
+- Example: Stroke-based doughnut charts with `fill="none"` are standard - if not working, check props/rendering, don't rebuild with inner/outer radius arcs
+
+### 4. Technical Notes
+- **Charts in React Native SVG**: Stroke-based approaches with `fill="none"` naturally create doughnuts when done correctly
+- **SVG debugging**: Check circle/path props, strokeWidth, radius calculations, and container sizing before rewriting
+- Working code from this project is in the git history - reference it when needed
+
+### 5. User Trust
+- The user has built this entire app with Claude
+- Maintain that trust by being confident, focused, and debugging systematically
+- **This is serious**: The user expects the same quality and approach that successfully built all previous features
+
+---
+
 # Teaching Methodology
 
 This section provides teaching methodology guidance for Claude Code when working with this codebase.
