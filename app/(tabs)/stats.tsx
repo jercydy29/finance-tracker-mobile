@@ -239,8 +239,14 @@ function PieChart({
 
     // If SVG is not available, show a simple fallback
     if (!Svg) {
+        const holeSize = size * 0.55;
         return (
-            <View style={[styles.fallbackChart, { width: size, height: size }]}>
+            <View 
+                style={[
+                    styles.fallbackChart, 
+                    { width: size, height: size, borderRadius: size / 2 }
+                ]}
+            >
                 <View style={styles.fallbackChartInner}>
                     {data.slice(0, 4).map((item, index) => (
                         <View 
@@ -255,6 +261,18 @@ function PieChart({
                         />
                     ))}
                 </View>
+                <View 
+                    style={[
+                        styles.fallbackHole, 
+                        { 
+                            width: holeSize, 
+                            height: holeSize, 
+                            borderRadius: holeSize / 2,
+                            top: (size - holeSize) / 2,
+                            left: (size - holeSize) / 2,
+                        }
+                    ]} 
+                />
             </View>
         );
     }
@@ -614,5 +632,9 @@ const styles = StyleSheet.create({
     },
     fallbackSegment: {
         height: '100%',
+    },
+    fallbackHole: {
+        position: 'absolute',
+        backgroundColor: colors.white,
     },
 });
