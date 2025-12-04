@@ -19,6 +19,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 export default function EditScreen() {
     const params = useLocalSearchParams<{
@@ -53,6 +54,7 @@ export default function EditScreen() {
 
     // Handle removing the receipt
     const handleRemoveReceipt = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
             'Remove Receipt',
             'Are you sure you want to remove the attached receipt?',
@@ -69,6 +71,7 @@ export default function EditScreen() {
 
     // Handle type change and reset category if needed
     const handleTypeChange = (newType: TransactionType) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setType(newType);
         // Reset category if switching types and current category doesn't exist in new type
         const newCategories = newType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -116,6 +119,7 @@ export default function EditScreen() {
         setSaving(false);
 
         if (result.success) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Success', 'Transaction updated successfully!', [
                 {
                     text: 'OK',
@@ -129,6 +133,7 @@ export default function EditScreen() {
 
     // Handle delete transaction
     const handleDelete = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
             'Delete Transaction',
             'Are you sure you want to delete this transaction? This action cannot be undone.',
@@ -139,12 +144,13 @@ export default function EditScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         if (!params.id) return;
-                        
+
                         setDeleting(true);
                         const result = await deleteTransaction(params.id);
                         setDeleting(false);
 
                         if (result.success) {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             router.back();
                         } else {
                             Alert.alert('Error', result.error || 'Failed to delete transaction');
@@ -169,13 +175,25 @@ export default function EditScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.headerRow}>
-                            <Pressable onPress={() => router.back()} style={styles.backButton}>
+                            <Pressable
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    router.back();
+                                }}
+                                style={({ pressed }) => [
+                                    styles.backButton,
+                                    pressed && { transform: [{ scale: 0.9 }] },
+                                ]}
+                            >
                                 <Ionicons name="arrow-back" size={24} color={colors.stone800} />
                             </Pressable>
                             <Text style={styles.title}>Edit Transaction</Text>
-                            <Pressable 
-                                onPress={handleDelete} 
-                                style={styles.deleteButton}
+                            <Pressable
+                                onPress={handleDelete}
+                                style={({ pressed }) => [
+                                    styles.deleteButton,
+                                    pressed && !deleting && { transform: [{ scale: 0.9 }] },
+                                ]}
                                 disabled={deleting}
                             >
                                 <Ionicons 
@@ -190,10 +208,11 @@ export default function EditScreen() {
                     {/* Type Toggle */}
                     <View style={styles.typeContainer}>
                         <Pressable
-                            style={[
+                            style={({ pressed }) => [
                                 styles.typeButton,
                                 type === 'expense' && styles.typeButtonActiveExpense,
                                 { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+                                pressed && { transform: [{ scale: 0.95 }] },
                             ]}
                             onPress={() => handleTypeChange('expense')}
                         >
@@ -207,10 +226,11 @@ export default function EditScreen() {
                             </Text>
                         </Pressable>
                         <Pressable
-                            style={[
+                            style={({ pressed }) => [
                                 styles.typeButton,
                                 type === 'income' && styles.typeButtonActiveIncome,
                                 { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
+                                pressed && { transform: [{ scale: 0.95 }] },
                             ]}
                             onPress={() => handleTypeChange('income')}
                         >
@@ -249,11 +269,15 @@ export default function EditScreen() {
                                 (cat) => (
                                     <Pressable
                                         key={cat}
-                                        style={[
+                                        style={({ pressed }) => [
                                             styles.categoryButton,
                                             category === cat && styles.categoryButtonActive,
+                                            pressed && { transform: [{ scale: 0.95 }] },
                                         ]}
-                                        onPress={() => setCategory(cat)}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            setCategory(cat);
+                                        }}
                                     >
                                         <Text
                                             style={[
@@ -320,7 +344,11 @@ export default function EditScreen() {
 
                     {/* Save Button */}
                     <Pressable
-                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                        style={({ pressed }) => [
+                            styles.saveButton,
+                            saving && styles.saveButtonDisabled,
+                            pressed && !saving && { transform: [{ scale: 0.98 }] },
+                        ]}
                         onPress={handleSave}
                         disabled={saving || deleting}
                     >

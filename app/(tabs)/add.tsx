@@ -2,10 +2,11 @@ import { colors } from '@/constants/colors';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/features/transactions/constants';
 import type { TransactionType } from '@/features/transactions/types';
 import { useTransactions } from '@/hooks/useTransactions';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Image,
@@ -19,7 +20,6 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import Toast from 'react-native-toast-message';
 
 export default function AddScreen() {
     const params = useLocalSearchParams<{
@@ -50,6 +50,7 @@ export default function AddScreen() {
 
     // Handle removing the receipt and clearing OCR-populated fields
     const handleRemoveReceipt = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
             'Remove Receipt',
             'This will also clear the auto-filled fields (amount, category, description, date). Continue?',
@@ -72,6 +73,7 @@ export default function AddScreen() {
 
     // Handle type change and reset category
     const handleTypeChange = (newType: TransactionType) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setType(newType);
         setCategory(''); // Reset category when switching types
     };
@@ -115,6 +117,7 @@ export default function AddScreen() {
         setSaving(false);
 
         if (result.success) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Success', 'Transaction added successfully!', [
                 {
                     text: 'OK',
@@ -153,10 +156,11 @@ export default function AddScreen() {
                     {/* Type Toggle */}
                     <View style={styles.typeContainer}>
                         <Pressable
-                            style={[
+                            style={({ pressed }) => [
                                 styles.typeButton,
                                 type === 'expense' && styles.typeButtonActiveExpense,
                                 { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+                                pressed && { transform: [{ scale: 0.95 }] },
                             ]}
                             onPress={() => handleTypeChange('expense')}
                         >
@@ -170,10 +174,11 @@ export default function AddScreen() {
                             </Text>
                         </Pressable>
                         <Pressable
-                            style={[
+                            style={({ pressed }) => [
                                 styles.typeButton,
                                 type === 'income' && styles.typeButtonActiveIncome,
                                 { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
+                                pressed && { transform: [{ scale: 0.95 }] },
                             ]}
                             onPress={() => handleTypeChange('income')}
                         >
@@ -212,11 +217,15 @@ export default function AddScreen() {
                                 (cat) => (
                                     <Pressable
                                         key={cat}
-                                        style={[
+                                        style={({ pressed }) => [
                                             styles.categoryButton,
                                             category === cat && styles.categoryButtonActive,
+                                            pressed && { transform: [{ scale: 0.95 }] },
                                         ]}
-                                        onPress={() => setCategory(cat)}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            setCategory(cat);
+                                        }}
                                     >
                                         <Text
                                             style={[
@@ -283,7 +292,11 @@ export default function AddScreen() {
 
                     {/* Save Button */}
                     <Pressable
-                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                        style={({ pressed }) => [
+                            styles.saveButton,
+                            saving && styles.saveButtonDisabled,
+                            pressed && !saving && { transform: [{ scale: 0.98 }] },
+                        ]}
                         onPress={handleSave}
                         disabled={saving}
                     >

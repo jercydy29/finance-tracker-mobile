@@ -72,25 +72,38 @@ export default function StatsScreen() {
             <View style={styles.header}>
                 <Text style={styles.title}>Statistics</Text>
                 <View style={styles.monthNav}>
-                    <Pressable onPress={handlePreviousMonth} style={styles.monthNavButton}>
+                    <Pressable
+                        onPress={handlePreviousMonth}
+                        style={({ pressed }) => [
+                            styles.monthNavButton,
+                            pressed && { transform: [{ scale: 0.9 }] },
+                        ]}
+                    >
                         <Ionicons name="chevron-back" size={20} color={colors.stone800} />
                     </Pressable>
-                    <Pressable 
-                        onPress={() => setMonthPickerVisible(true)} 
-                        style={styles.monthButton}
+                    <Pressable
+                        onPress={() => setMonthPickerVisible(true)}
+                        style={({ pressed }) => [
+                            styles.monthButton,
+                            pressed && { transform: [{ scale: 0.95 }] },
+                        ]}
                     >
                         <Text style={styles.monthText}>{monthLabel}</Text>
                         <Ionicons name="chevron-down" size={16} color={colors.stone500} />
                     </Pressable>
-                    <Pressable 
-                        onPress={handleNextMonth} 
-                        style={[styles.monthNavButton, isCurrentMonth && styles.monthNavButtonDisabled]}
+                    <Pressable
+                        onPress={handleNextMonth}
+                        style={({ pressed }) => [
+                            styles.monthNavButton,
+                            isCurrentMonth && styles.monthNavButtonDisabled,
+                            pressed && !isCurrentMonth && { transform: [{ scale: 0.9 }] },
+                        ]}
                         disabled={isCurrentMonth}
                     >
-                        <Ionicons 
-                            name="chevron-forward" 
-                            size={20} 
-                            color={isCurrentMonth ? colors.stone300 : colors.stone800} 
+                        <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={isCurrentMonth ? colors.stone300 : colors.stone800}
                         />
                     </Pressable>
                 </View>

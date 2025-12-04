@@ -211,23 +211,41 @@ export default function ScanScreen() {
 
                 {/* Bottom controls */}
                 <View style={styles.controls}>
-                    <Pressable style={styles.galleryButton} onPress={pickImage}>
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.galleryButton,
+                            pressed && { transform: [{ scale: 0.9 }] },
+                        ]}
+                        onPress={pickImage}
+                    >
                         <Ionicons name="images-outline" size={28} color={colors.white} />
                         <Text style={styles.controlText}>Gallery</Text>
                     </Pressable>
 
-                    <Pressable style={styles.captureButton} onPress={takePicture}>
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.captureButton,
+                            pressed && { transform: [{ scale: 0.95 }] },
+                        ]}
+                        onPress={takePicture}
+                    >
                         <View style={styles.captureButtonInner} />
                     </Pressable>
 
-                    <Pressable 
-                        style={styles.flashButton} 
-                        onPress={() => setFlashEnabled(!flashEnabled)}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.flashButton,
+                            pressed && { transform: [{ scale: 0.9 }] },
+                        ]}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setFlashEnabled(!flashEnabled);
+                        }}
                     >
-                        <Ionicons 
-                            name={flashEnabled ? 'flash' : 'flash-off'} 
-                            size={28} 
-                            color={flashEnabled ? colors.amber400 : colors.white} 
+                        <Ionicons
+                            name={flashEnabled ? 'flash' : 'flash-off'}
+                            size={28}
+                            color={flashEnabled ? colors.amber400 : colors.white}
                         />
                         <Text style={styles.controlText}>
                             {flashEnabled ? 'Flash On' : 'Flash Off'}

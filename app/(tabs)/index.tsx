@@ -152,7 +152,11 @@ export default function HomeScreen() {
                 <View style={styles.monthNav}>
                     <Pressable
                         onPress={handlePreviousMonth}
-                        style={[styles.monthNavButton, !hasPreviousMonth && styles.monthNavButtonDisabled]}
+                        style={({ pressed }) => [
+                            styles.monthNavButton,
+                            !hasPreviousMonth && styles.monthNavButtonDisabled,
+                            pressed && hasPreviousMonth && { transform: [{ scale: 0.9 }] },
+                        ]}
                         disabled={!hasPreviousMonth}
                     >
                         <Ionicons
@@ -163,14 +167,21 @@ export default function HomeScreen() {
                     </Pressable>
                     <Pressable
                         onPress={() => setMonthPickerVisible(true)}
-                        style={styles.monthButton}
+                        style={({ pressed }) => [
+                            styles.monthButton,
+                            pressed && { transform: [{ scale: 0.95 }] },
+                        ]}
                     >
                         <Text style={styles.monthText}>{monthLabel}</Text>
                         <Ionicons name="chevron-down" size={16} color={colors.stone500} />
                     </Pressable>
                     <Pressable
                         onPress={handleNextMonth}
-                        style={[styles.monthNavButton, isCurrentMonth && styles.monthNavButtonDisabled]}
+                        style={({ pressed }) => [
+                            styles.monthNavButton,
+                            isCurrentMonth && styles.monthNavButtonDisabled,
+                            pressed && !isCurrentMonth && { transform: [{ scale: 0.9 }] },
+                        ]}
                         disabled={isCurrentMonth}
                     >
                         <Ionicons

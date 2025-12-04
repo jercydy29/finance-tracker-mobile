@@ -84,7 +84,11 @@ export function MonthPicker({
                     <View style={styles.yearNav}>
                         <Pressable
                             onPress={handlePreviousYear}
-                            style={[styles.yearNavButton, !canGoPrevious && styles.yearNavButtonDisabled]}
+                            style={({ pressed }) => [
+                                styles.yearNavButton,
+                                !canGoPrevious && styles.yearNavButtonDisabled,
+                                pressed && canGoPrevious && { transform: [{ scale: 0.9 }] },
+                            ]}
                             disabled={!canGoPrevious}
                         >
                             <Ionicons
@@ -93,14 +97,18 @@ export function MonthPicker({
                                 color={canGoPrevious ? colors.stone800 : colors.stone300}
                             />
                         </Pressable>
-                        
+
                         <Text style={[styles.yearText, !yearHasTransactions && styles.yearTextDisabled]}>
                             {pickerYear}
                         </Text>
-                        
+
                         <Pressable
                             onPress={handleNextYear}
-                            style={[styles.yearNavButton, !canGoNext && styles.yearNavButtonDisabled]}
+                            style={({ pressed }) => [
+                                styles.yearNavButton,
+                                !canGoNext && styles.yearNavButtonDisabled,
+                                pressed && canGoNext && { transform: [{ scale: 0.9 }] },
+                            ]}
                             disabled={!canGoNext}
                         >
                             <Ionicons
@@ -120,10 +128,11 @@ export function MonthPicker({
                             return (
                                 <Pressable
                                     key={month}
-                                    style={[
+                                    style={({ pressed }) => [
                                         styles.monthButton,
                                         hasTransactions && styles.monthButtonEnabled,
                                         isSelected && styles.monthButtonSelected,
+                                        pressed && hasTransactions && { transform: [{ scale: 0.95 }] },
                                     ]}
                                     onPress={() => handleSelectMonth(index)}
                                     disabled={!hasTransactions}
@@ -143,7 +152,13 @@ export function MonthPicker({
                     </View>
 
                     {/* Close Button */}
-                    <Pressable style={styles.closeButton} onPress={handleClose}>
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.closeButton,
+                            pressed && { transform: [{ scale: 0.98 }] },
+                        ]}
+                        onPress={handleClose}
+                    >
                         <Text style={styles.closeButtonText}>Cancel</Text>
                     </Pressable>
                 </Pressable>

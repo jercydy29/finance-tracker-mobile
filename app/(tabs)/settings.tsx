@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Linking } from 'react-native';
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeMode } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
 import { useState, useEffect } from 'react';
@@ -15,6 +16,7 @@ type SettingItem = {
 };
 
 export default function SettingsScreen() {
+    const { colors, themeMode, setThemeMode, isDark } = useTheme();
     const [transactionCount, setTransactionCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
@@ -30,12 +32,52 @@ export default function SettingsScreen() {
             const { count } = await supabase
                 .from('transactions')
                 .select('*', { count: 'exact', head: true });
-            
+
             setTransactionCount(count || 0);
         } catch (error) {
             console.error('Error fetching stats:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleThemeChange = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Alert.alert(
+            'Choose Theme',
+            'Select your preferred appearance',
+            [
+                {
+                    text: 'Light',
+                    onPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setThemeMode('light');
+                    },
+                },
+                {
+                    text: 'Dark',
+                    onPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setThemeMode('dark');
+                    },
+                },
+                {
+                    text: 'System',
+                    onPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setThemeMode('system');
+                    },
+                },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
+
+    const getThemeLabel = (mode: ThemeMode): string => {
+        switch (mode) {
+            case 'light': return 'Light';
+            case 'dark': return 'Dark';
+            case 'system': return 'System';
         }
     };
 
@@ -63,10 +105,10 @@ export default function SettingsScreen() {
                             const { error } = await supabase
                                 .from('transactions')
                                 .delete()
-                                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-                            
+                                .neq('id', '00000000-0000-0000-0000-000000000000');
+
                             if (error) throw error;
-                            
+
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                             Alert.alert('Success', 'All transactions have been deleted.');
                             setTransactionCount(0);
@@ -82,7 +124,6 @@ export default function SettingsScreen() {
 
     const handlePrivacyPolicy = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        // You can replace this with your actual privacy policy URL
         Alert.alert('Privacy Policy', 'Your data is stored securely in Supabase and is only accessible by you.');
     };
 
@@ -108,6 +149,15 @@ export default function SettingsScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Linking.openURL('mailto:feedback@example.com?subject=Finance Tracker Feedback');
     };
+
+    const appearanceSettings: SettingItem[] = [
+        {
+            icon: isDark ? 'moon' : 'sunny',
+            label: 'Appearance',
+            value: getThemeLabel(themeMode),
+            onPress: handleThemeChange,
+        },
+    ];
 
     const dataSettings: SettingItem[] = [
         {
@@ -151,11 +201,28 @@ export default function SettingsScreen() {
         },
     ];
 
+    const styles = createStyles(colors);
+
     return (
         <ScrollView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Settings</Text>
+            </View>
+
+            {/* Appearance Section */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Appearance</Text>
+                <View style={styles.card}>
+                    {appearanceSettings.map((item, index) => (
+                        <SettingRow
+                            key={item.label}
+                            item={item}
+                            isLast={index === appearanceSettings.length - 1}
+                            colors={colors}
+                        />
+                    ))}
+                </View>
             </View>
 
             {/* Data Section */}
@@ -167,6 +234,7 @@ export default function SettingsScreen() {
                             key={item.label}
                             item={item}
                             isLast={index === dataSettings.length - 1}
+                            colors={colors}
                         />
                     ))}
                 </View>
@@ -181,6 +249,7 @@ export default function SettingsScreen() {
                             key={item.label}
                             item={item}
                             isLast={index === appSettings.length - 1}
+                            colors={colors}
                         />
                     ))}
                 </View>
@@ -195,6 +264,7 @@ export default function SettingsScreen() {
                             key={item.label}
                             item={item}
                             isLast={index === supportSettings.length - 1}
+                            colors={colors}
                         />
                     ))}
                 </View>
@@ -202,50 +272,65 @@ export default function SettingsScreen() {
 
             {/* Footer */}
             <View style={styles.footer}>
-                <Text style={styles.footerText}>Made with ❤️ using Expo</Text>
+                <Text style={styles.footerText}>Made with love using Expo</Text>
             </View>
         </ScrollView>
     );
 }
 
-function SettingRow({ item, isLast }: { item: SettingItem; isLast: boolean }) {
+function SettingRow({ item, isLast, colors }: { item: SettingItem; isLast: boolean; colors: any }) {
     return (
         <Pressable
-            style={[styles.settingRow, !isLast && styles.settingRowBorder]}
+            style={({ pressed }) => [
+                {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 16,
+                    paddingHorizontal: 16,
+                    borderBottomWidth: isLast ? 0 : 1,
+                    borderBottomColor: colors.border,
+                },
+                pressed && { backgroundColor: colors.surfaceSecondary },
+            ]}
             onPress={item.onPress}
         >
-            <View style={styles.settingLeft}>
-                <View style={[
-                    styles.iconContainer,
-                    item.danger && styles.iconContainerDanger
-                ]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: item.danger ? colors.lightPink : colors.surfaceSecondary,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}>
                     <Ionicons
                         name={item.icon}
                         size={20}
                         color={item.danger ? colors.red600 : colors.amber600}
                     />
                 </View>
-                <Text style={[
-                    styles.settingLabel,
-                    item.danger && styles.settingLabelDanger
-                ]}>
+                <Text style={{
+                    fontSize: 16,
+                    color: item.danger ? colors.red600 : colors.textPrimary,
+                }}>
                     {item.label}
                 </Text>
             </View>
-            <View style={styles.settingRight}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {item.value && (
-                    <Text style={styles.settingValue}>{item.value}</Text>
+                    <Text style={{ fontSize: 14, color: colors.textMuted }}>{item.value}</Text>
                 )}
-                <Ionicons name="chevron-forward" size={20} color={colors.stone400} />
+                <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
             </View>
         </Pressable>
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.stone50,
+        backgroundColor: colors.background,
     },
     header: {
         paddingTop: 60,
@@ -255,7 +340,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     section: {
         paddingHorizontal: 24,
@@ -264,58 +349,15 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone500,
+        color: colors.textMuted,
         marginBottom: 12,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         overflow: 'hidden',
-    },
-    settingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-    },
-    settingRowBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: colors.stone100,
-    },
-    settingLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    iconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: colors.stone50,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconContainerDanger: {
-        backgroundColor: colors.lightPink,
-    },
-    settingLabel: {
-        fontSize: 16,
-        color: colors.stone800,
-    },
-    settingLabelDanger: {
-        color: colors.red600,
-    },
-    settingRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    settingValue: {
-        fontSize: 14,
-        color: colors.stone500,
     },
     footer: {
         paddingVertical: 32,
@@ -323,6 +365,6 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: colors.stone400,
+        color: colors.textPlaceholder,
     },
 });
