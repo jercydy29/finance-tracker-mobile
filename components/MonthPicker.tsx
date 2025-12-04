@@ -1,4 +1,4 @@
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -33,6 +33,8 @@ export function MonthPicker({
     getNextYearWithTransactions,
     availableYears,
 }: MonthPickerProps) {
+    const { colors } = useTheme();
+    const styles = createStyles(colors);
     const [pickerYear, setPickerYear] = useState(selectedYear);
 
     const previousYear = getPreviousYearWithTransactions(pickerYear);
@@ -167,7 +169,7 @@ export function MonthPicker({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -175,7 +177,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     container: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 20,
         padding: 24,
         width: '85%',
@@ -197,10 +199,10 @@ const styles = StyleSheet.create({
     yearText: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     yearTextDisabled: {
-        color: colors.stone400,
+        color: colors.textPlaceholder,
     },
     monthGrid: {
         flexDirection: 'row',
@@ -213,10 +215,10 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 12,
         alignItems: 'center',
-        backgroundColor: colors.stone50,
+        backgroundColor: colors.background,
     },
     monthButtonEnabled: {
-        backgroundColor: colors.stone200,
+        backgroundColor: colors.surfaceSecondary,
     },
     monthButtonSelected: {
         backgroundColor: colors.amber600,
@@ -224,10 +226,10 @@ const styles = StyleSheet.create({
     monthText: {
         fontSize: 15,
         fontWeight: '500',
-        color: colors.stone400,
+        color: colors.textPlaceholder,
     },
     monthTextEnabled: {
-        color: colors.stone800,
+        color: colors.textPrimary,
         fontWeight: '600',
     },
     monthTextSelected: {
@@ -242,6 +244,6 @@ const styles = StyleSheet.create({
     closeButtonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.stone500,
+        color: colors.textMuted,
     },
 });

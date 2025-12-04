@@ -1,4 +1,4 @@
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { uploadReceiptImage } from '@/services/storage';
 import { parseReceiptImage } from '@/services/ocr';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -10,6 +10,8 @@ import * as Haptics from 'expo-haptics';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function ScanScreen() {
+    const { colors } = useTheme();
+    const styles = createStyles(colors);
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -257,7 +259,7 @@ export default function ScanScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.black,
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
     },
     permissionText: {
         fontSize: 16,
-        color: colors.stone400,
+        color: colors.textPlaceholder,
         textAlign: 'center',
     },
     permissionButton: {
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         paddingVertical: 16,
         borderRadius: 12,
         gap: 8,
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
     secondaryButtonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     primaryButton: {
         flex: 1,
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     primaryButtonDisabled: {
-        backgroundColor: colors.stone400,
+        backgroundColor: colors.textPlaceholder,
     },
     primaryButtonText: {
         fontSize: 16,
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     processingCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         paddingHorizontal: 32,
         paddingVertical: 24,
         borderRadius: 16,
@@ -436,7 +438,7 @@ const styles = StyleSheet.create({
     processingText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         textAlign: 'center',
     },
 });

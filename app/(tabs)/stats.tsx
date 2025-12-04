@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useStats } from '@/hooks/useStats';
 import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,8 @@ try {
 }
 
 export default function StatsScreen() {
+    const { colors } = useTheme();
+    const styles = createStyles(colors);
     const {
         stats,
         loading,
@@ -79,7 +81,7 @@ export default function StatsScreen() {
                             pressed && { transform: [{ scale: 0.9 }] },
                         ]}
                     >
-                        <Ionicons name="chevron-back" size={20} color={colors.stone800} />
+                        <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
                     </Pressable>
                     <Pressable
                         onPress={() => setMonthPickerVisible(true)}
@@ -89,7 +91,7 @@ export default function StatsScreen() {
                         ]}
                     >
                         <Text style={styles.monthText}>{monthLabel}</Text>
-                        <Ionicons name="chevron-down" size={16} color={colors.stone500} />
+                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
                     </Pressable>
                     <Pressable
                         onPress={handleNextMonth}
@@ -103,7 +105,7 @@ export default function StatsScreen() {
                         <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={isCurrentMonth ? colors.stone300 : colors.stone800}
+                            color={isCurrentMonth ? colors.stone300 : colors.textPrimary}
                         />
                     </Pressable>
                 </View>
@@ -153,9 +155,11 @@ export default function StatsScreen() {
                                 <>
                                     {/* Segmented Pie Chart */}
                                     <View style={styles.chartContainer}>
-                                        <PieChart 
-                                            data={stats.categoryBreakdown} 
+                                        <PieChart
+                                            data={stats.categoryBreakdown}
                                             total={stats.expenses}
+                                            colors={colors}
+                                            styles={styles}
                                         />
                                         <View style={styles.chartCenter}>
                                             <Text style={styles.chartTotal}>
@@ -174,6 +178,7 @@ export default function StatsScreen() {
                                                 label={item.category}
                                                 amount={formatCurrency(item.amount)}
                                                 percentage={`${item.percentage}%`}
+                                                styles={styles}
                                             />
                                         ))}
                                     </View>
@@ -206,6 +211,8 @@ export default function StatsScreen() {
                                                 label={month.label}
                                                 amount={formatCurrency(month.expenses)}
                                                 isActive={isActive}
+                                                styles={styles}
+                                                colors={colors}
                                             />
                                         );
                                     })}
@@ -238,12 +245,16 @@ export default function StatsScreen() {
 }
 
 // Segmented Pie Chart Component
-function PieChart({ 
-    data, 
-    total 
-}: { 
+function PieChart({
+    data,
+    total,
+    colors,
+    styles
+}: {
     data: { category: string; amount: number; percentage: number; color: string }[];
     total: number;
+    colors: any;
+    styles: any;
 }) {
     const size = 160;
     const strokeWidth = 28;
@@ -333,7 +344,7 @@ function PieChart({
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={colors.stone100}
+                stroke={colors.surfaceSecondary}
                 strokeWidth={strokeWidth}
                 fill="none"
             />
@@ -372,16 +383,18 @@ function PieChart({
     );
 }
 
-function LegendItem({ 
-    color, 
-    label, 
+function LegendItem({
+    color,
+    label,
     amount,
-    percentage 
-}: { 
-    color: string; 
-    label: string; 
+    percentage,
+    styles
+}: {
+    color: string;
+    label: string;
     amount: string;
     percentage: string;
+    styles: any;
 }) {
     return (
         <View style={styles.legendItem}>
@@ -397,16 +410,20 @@ function LegendItem({
     );
 }
 
-function BarItem({ 
-    height, 
-    label, 
+function BarItem({
+    height,
+    label,
     amount,
-    isActive 
-}: { 
-    height: number; 
-    label: string; 
+    isActive,
+    styles,
+    colors
+}: {
+    height: number;
+    label: string;
     amount: string;
     isActive?: boolean;
+    styles: any;
+    colors: any;
 }) {
     return (
         <View style={styles.barItem}>
@@ -416,7 +433,7 @@ function BarItem({
                     styles.bar,
                     {
                         height: `${height}%`,
-                        backgroundColor: isActive ? colors.amber600 : colors.stone200
+                        backgroundColor: isActive ? colors.amber600 : colors.surfaceSecondary
                     }
                 ]} />
             </View>
@@ -430,10 +447,10 @@ function BarItem({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.stone50,
+        backgroundColor: colors.background,
     },
     header: {
         paddingTop: 60,
@@ -443,7 +460,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     monthNav: {
@@ -465,12 +482,12 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 10,
         borderRadius: 8,
-        backgroundColor: colors.stone100,
+        backgroundColor: colors.surfaceSecondary,
     },
     monthText: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone700,
+        color: colors.textSecondary,
     },
     loadingContainer: {
         paddingVertical: 80,
@@ -479,7 +496,7 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: 16,
-        color: colors.stone600,
+        color: colors.textTertiary,
     },
     summaryCards: {
         flexDirection: 'row',
@@ -494,7 +511,7 @@ const styles = StyleSheet.create({
     },
     cardLabel: {
         fontSize: 14,
-        color: colors.stone600,
+        color: colors.textTertiary,
         marginBottom: 8,
     },
     cardAmount: {
@@ -506,14 +523,14 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     balanceCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         alignItems: 'center',
     },
     balanceLabel: {
         fontSize: 14,
-        color: colors.stone600,
+        color: colors.textTertiary,
         marginBottom: 8,
     },
     balanceAmount: {
@@ -523,11 +540,11 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         marginBottom: 16,
     },
     breakdownCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
     },
@@ -545,11 +562,11 @@ const styles = StyleSheet.create({
     chartTotal: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     chartLabel: {
         fontSize: 12,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     legend: {
         gap: 12,
@@ -576,16 +593,16 @@ const styles = StyleSheet.create({
     },
     legendLabel: {
         fontSize: 14,
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     legendAmount: {
         fontSize: 14,
-        color: colors.stone600,
+        color: colors.textTertiary,
     },
     legendPercentage: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         minWidth: 40,
         textAlign: 'right',
     },
@@ -596,10 +613,10 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     trendCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
     },
@@ -632,12 +649,12 @@ const styles = StyleSheet.create({
     },
     barLabel: {
         fontSize: 12,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     fallbackChart: {
         borderRadius: 80,
         overflow: 'hidden',
-        backgroundColor: colors.stone100,
+        backgroundColor: colors.surfaceSecondary,
     },
     fallbackChartInner: {
         flex: 1,
@@ -648,6 +665,6 @@ const styles = StyleSheet.create({
     },
     fallbackHole: {
         position: 'absolute',
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
     },
 });

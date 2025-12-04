@@ -1,4 +1,4 @@
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
+    const { colors } = useTheme();
     const {
         transactions,
         loading,
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     const isFirstFocus = useRef(true);
     const flatListRef = useRef<FlatList>(null);
     const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+    const styles = createStyles(colors);
 
     // Refetch and scroll to top when screen comes back into focus (not on initial mount)
     useFocusEffect(
@@ -239,6 +241,8 @@ export default function HomeScreen() {
             rawDate={transaction.date}
             receiptUrl={transaction.receipt_url}
             onDelete={handleDelete}
+            colors={colors}
+            styles={styles}
         />
     );
 
@@ -287,6 +291,8 @@ function TransactionItem({
     rawDate,
     receiptUrl,
     onDelete,
+    colors,
+    styles,
 }: {
     id: string;
     title: string;
@@ -299,6 +305,8 @@ function TransactionItem({
     rawDate: string;
     receiptUrl?: string | null;
     onDelete: (id: string, title: string) => void;
+    colors: any;
+    styles: any;
 }) {
     const swipeableRef = useRef<Swipeable>(null);
 
@@ -376,10 +384,10 @@ function TransactionItem({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.stone50,
+        backgroundColor: colors.background,
     },
     listContent: {
         flexGrow: 1,
@@ -393,7 +401,7 @@ const styles = StyleSheet.create({
     greeting: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     monthNav: {
         flexDirection: 'row',
@@ -414,29 +422,31 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 10,
         borderRadius: 8,
-        backgroundColor: colors.stone100,
+        backgroundColor: colors.surfaceSecondary,
     },
     monthText: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone700,
+        color: colors.textSecondary,
     },
     balanceCard: {
-        backgroundColor: colors.gray700,
+        backgroundColor: colors.surface,
         marginHorizontal: 24,
         borderRadius: 20,
         padding: 24,
         marginBottom: 24,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     balanceLabel: {
         fontSize: 14,
-        color: colors.stone200,
+        color: colors.textMuted,
         marginBottom: 8,
     },
     balanceAmount: {
         fontSize: 36,
         fontWeight: 'bold',
-        color: colors.white,
+        color: colors.textPrimary,
         marginBottom: 24,
     },
     summaryRow: {
@@ -447,7 +457,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: colors.surfaceSecondary,
         padding: 16,
         borderRadius: 12,
         gap: 12,
@@ -461,13 +471,13 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 12,
-        color: colors.stone200,
+        color: colors.textMuted,
         marginBottom: 4,
     },
     summaryAmount: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.white,
+        color: colors.textPrimary,
     },
     transactionsHeader: {
         flexDirection: 'row',
@@ -479,7 +489,7 @@ const styles = StyleSheet.create({
     transactionsTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     loadingMoreContainer: {
         flexDirection: 'row',
@@ -490,7 +500,7 @@ const styles = StyleSheet.create({
     },
     loadingMoreText: {
         fontSize: 14,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     loadingContainer: {
         paddingVertical: 48,
@@ -499,7 +509,7 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: 16,
-        color: colors.stone600,
+        color: colors.textTertiary,
     },
     emptyContainer: {
         paddingVertical: 48,
@@ -509,16 +519,16 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     emptySubtext: {
         fontSize: 14,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     transactionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         marginHorizontal: 24,
         padding: 16,
         borderRadius: 12,
@@ -538,12 +548,12 @@ const styles = StyleSheet.create({
     transactionTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     transactionDate: {
         fontSize: 14,
-        color: colors.stone500,
+        color: colors.textMuted,
     },
     transactionAmount: {
         fontSize: 16,

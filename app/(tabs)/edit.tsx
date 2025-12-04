@@ -1,4 +1,4 @@
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/features/transactions/constants';
 import type { TransactionType } from '@/features/transactions/types';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -22,6 +22,8 @@ import {
 import * as Haptics from 'expo-haptics';
 
 export default function EditScreen() {
+    const { colors } = useTheme();
+    const styles = createStyles(colors);
     const params = useLocalSearchParams<{
         id: string;
         type: TransactionType;
@@ -362,10 +364,10 @@ export default function EditScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.stone50,
+        backgroundColor: colors.background,
     },
     scrollView: {
         flex: 1,
@@ -387,7 +389,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     deleteButton: {
         padding: 8,
@@ -397,7 +399,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginHorizontal: 24,
         marginBottom: 24,
-        backgroundColor: colors.stone100,
+        backgroundColor: colors.surfaceSecondary,
         borderRadius: 12,
         padding: 4,
     },
@@ -416,7 +418,7 @@ const styles = StyleSheet.create({
     typeButtonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
     },
     typeButtonTextActive: {
         color: colors.white,
@@ -429,13 +431,13 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone700,
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     labelInRow: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.stone700,
+        color: colors.textSecondary,
     },
     labelRow: {
         flexDirection: 'row',
@@ -456,34 +458,34 @@ const styles = StyleSheet.create({
     amountInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 12,
         paddingHorizontal: 16,
         borderWidth: 1,
-        borderColor: colors.stone200,
+        borderColor: colors.border,
     },
     currencySymbol: {
         fontSize: 24,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         marginRight: 8,
     },
     amountInput: {
         flex: 1,
         fontSize: 24,
         fontWeight: '600',
-        color: colors.stone800,
+        color: colors.textPrimary,
         paddingVertical: 16,
     },
     textInput: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 12,
         fontSize: 16,
-        color: colors.stone800,
+        color: colors.textPrimary,
         borderWidth: 1,
-        borderColor: colors.stone200,
+        borderColor: colors.border,
     },
     categoryGrid: {
         flexDirection: 'row',
@@ -495,9 +497,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: colors.stone200,
+        borderColor: colors.border,
     },
     categoryButtonActive: {
         backgroundColor: colors.amber600,
@@ -506,17 +508,17 @@ const styles = StyleSheet.create({
     categoryButtonText: {
         fontSize: 14,
         fontWeight: '500',
-        color: colors.stone700,
+        color: colors.textSecondary,
     },
     categoryButtonTextActive: {
         color: colors.white,
     },
     receiptPreview: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 12,
         borderWidth: 1,
-        borderColor: colors.stone200,
+        borderColor: colors.border,
         gap: 12,
     },
     receiptImage: {
@@ -543,7 +545,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveButtonDisabled: {
-        backgroundColor: colors.stone400,
+        backgroundColor: colors.textPlaceholder,
     },
     saveButtonText: {
         fontSize: 16,
