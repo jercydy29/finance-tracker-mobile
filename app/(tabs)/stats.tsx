@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useStats } from '@/hooks/useStats';
 import { MonthPicker } from '@/components/MonthPicker';
@@ -64,188 +64,190 @@ export default function StatsScreen() {
     const maxExpense = Math.max(...stats.monthlyTrend.map(m => m.expenses), 1);
 
     return (
-        <ScrollView 
-            style={styles.container}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading}
-                    onRefresh={refetch}
-                    tintColor={colors.amber400}
-                    colors={[colors.amber400]}
-                />
-            }
-        >
-            {/* Header with Month Navigation */}
-            <View style={styles.header}>
-                <Text style={styles.title}>Statistics</Text>
-                <View style={styles.monthNav}>
-                    <Pressable
-                        onPress={handlePreviousMonth}
-                        style={({ pressed }) => [
-                            styles.monthNavButton,
-                            pressed && { transform: [{ scale: 0.9 }] },
-                        ]}
-                    >
-                        <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-                    </Pressable>
-                    <Pressable
-                        onPress={() => setMonthPickerVisible(true)}
-                        style={({ pressed }) => [
-                            styles.monthButton,
-                            pressed && { transform: [{ scale: 0.95 }] },
-                        ]}
-                    >
-                        <Text style={styles.monthText}>{monthLabel}</Text>
-                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-                    </Pressable>
-                    <Pressable
-                        onPress={handleNextMonth}
-                        style={({ pressed }) => [
-                            styles.monthNavButton,
-                            isCurrentMonth && styles.monthNavButtonDisabled,
-                            pressed && !isCurrentMonth && { transform: [{ scale: 0.9 }] },
-                        ]}
-                        disabled={isCurrentMonth}
-                    >
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isCurrentMonth ? colors.textPlaceholder : colors.textPrimary}
-                        />
-                    </Pressable>
+        <SafeAreaView style={styles.container}>
+            <ScrollView
+                style={styles.scrollView}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={refetch}
+                        tintColor={colors.amber400}
+                        colors={[colors.amber400]}
+                    />
+                }
+            >
+                {/* Header with Month Navigation */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Statistics</Text>
+                    <View style={styles.monthNav}>
+                        <Pressable
+                            onPress={handlePreviousMonth}
+                            style={({ pressed }) => [
+                                styles.monthNavButton,
+                                pressed && { transform: [{ scale: 0.9 }] },
+                            ]}
+                        >
+                            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+                        </Pressable>
+                        <Pressable
+                            onPress={() => setMonthPickerVisible(true)}
+                            style={({ pressed }) => [
+                                styles.monthButton,
+                                pressed && { transform: [{ scale: 0.95 }] },
+                            ]}
+                        >
+                            <Text style={styles.monthText}>{monthLabel}</Text>
+                            <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                        </Pressable>
+                        <Pressable
+                            onPress={handleNextMonth}
+                            style={({ pressed }) => [
+                                styles.monthNavButton,
+                                isCurrentMonth && styles.monthNavButtonDisabled,
+                                pressed && !isCurrentMonth && { transform: [{ scale: 0.9 }] },
+                            ]}
+                            disabled={isCurrentMonth}
+                        >
+                            <Ionicons
+                                name="chevron-forward"
+                                size={20}
+                                color={isCurrentMonth ? colors.textPlaceholder : colors.textPrimary}
+                            />
+                        </Pressable>
+                    </View>
                 </View>
-            </View>
 
-            {loading && stats.income === 0 && stats.expenses === 0 ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.amber400} />
-                    <Text style={styles.loadingText}>Loading statistics...</Text>
-                </View>
-            ) : (
-                <>
-                    {/* Income/Expenses Cards */}
-                    <View style={styles.summaryCards}>
-                        <View style={[styles.card, { backgroundColor: colors.mintGreen }]}>
-                            <Text style={styles.cardLabel}>Income</Text>
-                            <Text style={[styles.cardAmount, { color: colors.emerald700 }]}>
-                                {formatCurrency(stats.income)}
-                            </Text>
-                        </View>
-                        <View style={[styles.card, { backgroundColor: colors.lightPink }]}>
-                            <Text style={styles.cardLabel}>Expenses</Text>
-                            <Text style={[styles.cardAmount, { color: colors.red600 }]}>
-                                {formatCurrency(stats.expenses)}
-                            </Text>
-                        </View>
+                {loading && stats.income === 0 && stats.expenses === 0 ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.amber400} />
+                        <Text style={styles.loadingText}>Loading statistics...</Text>
                     </View>
-
-                    {/* Balance Card */}
-                    <View style={styles.section}>
-                        <View style={styles.balanceCard}>
-                            <Text style={styles.balanceLabel}>Net Balance</Text>
-                            <Text style={[
-                                styles.balanceAmount,
-                                { color: stats.balance >= 0 ? colors.emerald600 : colors.red600 }
-                            ]}>
-                                {stats.balance >= 0 ? '+' : ''}{formatCurrency(stats.balance)}
-                            </Text>
+                ) : (
+                    <>
+                        {/* Income/Expenses Cards */}
+                        <View style={styles.summaryCards}>
+                            <View style={[styles.card, { backgroundColor: colors.mintGreen }]}>
+                                <Text style={styles.cardLabel}>Income</Text>
+                                <Text style={[styles.cardAmount, { color: colors.emerald700 }]}>
+                                    {formatCurrency(stats.income)}
+                                </Text>
+                            </View>
+                            <View style={[styles.card, { backgroundColor: colors.lightPink }]}>
+                                <Text style={styles.cardLabel}>Expenses</Text>
+                                <Text style={[styles.cardAmount, { color: colors.red600 }]}>
+                                    {formatCurrency(stats.expenses)}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
 
-                    {/* Expense Breakdown */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Expense Breakdown</Text>
-                        <View style={styles.breakdownCard}>
-                            {stats.categoryBreakdown.length > 0 ? (
-                                <>
-                                    {/* Segmented Pie Chart */}
-                                    <View style={styles.chartContainer}>
-                                        <PieChart
-                                            data={stats.categoryBreakdown}
-                                            total={stats.expenses}
-                                            colors={colors}
-                                            styles={styles}
-                                        />
-                                        <View style={styles.chartCenter}>
-                                            <Text style={styles.chartTotal}>
-                                                {formatCurrency(stats.expenses)}
-                                            </Text>
-                                            <Text style={styles.chartLabel}>Total</Text>
-                                        </View>
-                                    </View>
-
-                                    {/* Legend with real data */}
-                                    <View style={styles.legend}>
-                                        {stats.categoryBreakdown.map((item) => (
-                                            <LegendItem
-                                                key={item.category}
-                                                color={item.color}
-                                                label={item.category}
-                                                amount={formatCurrency(item.amount)}
-                                                percentage={`${item.percentage}%`}
-                                                styles={styles}
-                                            />
-                                        ))}
-                                    </View>
-                                </>
-                            ) : (
-                                <View style={styles.emptyState}>
-                                    <Ionicons name="pie-chart-outline" size={48} color={colors.stone300} />
-                                    <Text style={styles.emptyText}>No expenses this month</Text>
-                                </View>
-                            )}
+                        {/* Balance Card */}
+                        <View style={styles.section}>
+                            <View style={styles.balanceCard}>
+                                <Text style={styles.balanceLabel}>Net Balance</Text>
+                                <Text style={[
+                                    styles.balanceAmount,
+                                    { color: stats.balance >= 0 ? colors.emerald600 : colors.red600 }
+                                ]}>
+                                    {stats.balance >= 0 ? '+' : ''}{formatCurrency(stats.balance)}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
 
-                    {/* Monthly Trend */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Monthly Trend (Expenses)</Text>
-                        <View style={styles.trendCard}>
-                            {stats.monthlyTrend.length > 0 ? (
-                                <View style={styles.barChart}>
-                                    {stats.monthlyTrend.map((month, index) => {
-                                        const isActive = index === stats.monthlyTrend.length - 1;
-                                        const heightPercent = maxExpense > 0 
-                                            ? Math.max((month.expenses / maxExpense) * 100, 5) 
-                                            : 5;
-                                        
-                                        return (
-                                            <BarItem
-                                                key={month.month}
-                                                height={heightPercent}
-                                                label={month.label}
-                                                amount={formatCurrency(month.expenses)}
-                                                isActive={isActive}
-                                                styles={styles}
+                        {/* Expense Breakdown */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Expense Breakdown</Text>
+                            <View style={styles.breakdownCard}>
+                                {stats.categoryBreakdown.length > 0 ? (
+                                    <>
+                                        {/* Segmented Pie Chart */}
+                                        <View style={styles.chartContainer}>
+                                            <PieChart
+                                                data={stats.categoryBreakdown}
+                                                total={stats.expenses}
                                                 colors={colors}
+                                                styles={styles}
                                             />
-                                        );
-                                    })}
-                                </View>
-                            ) : (
-                                <View style={styles.emptyState}>
-                                    <Ionicons name="bar-chart-outline" size={48} color={colors.stone300} />
-                                    <Text style={styles.emptyText}>No data available</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                </>
-            )}
+                                            <View style={styles.chartCenter}>
+                                                <Text style={styles.chartTotal}>
+                                                    {formatCurrency(stats.expenses)}
+                                                </Text>
+                                                <Text style={styles.chartLabel}>Total</Text>
+                                            </View>
+                                        </View>
 
-            {/* Month Picker Modal */}
-            <MonthPicker
-                visible={monthPickerVisible}
-                onClose={() => setMonthPickerVisible(false)}
-                selectedYear={selectedMonth.year}
-                selectedMonth={selectedMonth.month}
-                onSelectMonth={handleMonthSelect}
-                hasTransactionsInMonth={hasTransactionsInMonth}
-                getPreviousYearWithTransactions={getPreviousYearWithTransactions}
-                getNextYearWithTransactions={getNextYearWithTransactions}
-                availableYears={availableYears}
-            />
-        </ScrollView>
+                                        {/* Legend with real data */}
+                                        <View style={styles.legend}>
+                                            {stats.categoryBreakdown.map((item) => (
+                                                <LegendItem
+                                                    key={item.category}
+                                                    color={item.color}
+                                                    label={item.category}
+                                                    amount={formatCurrency(item.amount)}
+                                                    percentage={`${item.percentage}%`}
+                                                    styles={styles}
+                                                />
+                                            ))}
+                                        </View>
+                                    </>
+                                ) : (
+                                    <View style={styles.emptyState}>
+                                        <Ionicons name="pie-chart-outline" size={48} color={colors.stone300} />
+                                        <Text style={styles.emptyText}>No expenses this month</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Monthly Trend */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Monthly Trend (Expenses)</Text>
+                            <View style={styles.trendCard}>
+                                {stats.monthlyTrend.length > 0 ? (
+                                    <View style={styles.barChart}>
+                                        {stats.monthlyTrend.map((month, index) => {
+                                            const isActive = index === stats.monthlyTrend.length - 1;
+                                            const heightPercent = maxExpense > 0
+                                                ? Math.max((month.expenses / maxExpense) * 100, 5)
+                                                : 5;
+
+                                            return (
+                                                <BarItem
+                                                    key={month.month}
+                                                    height={heightPercent}
+                                                    label={month.label}
+                                                    amount={formatCurrency(month.expenses)}
+                                                    isActive={isActive}
+                                                    styles={styles}
+                                                    colors={colors}
+                                                />
+                                            );
+                                        })}
+                                    </View>
+                                ) : (
+                                    <View style={styles.emptyState}>
+                                        <Ionicons name="bar-chart-outline" size={48} color={colors.stone300} />
+                                        <Text style={styles.emptyText}>No data available</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+                    </>
+                )}
+
+                {/* Month Picker Modal */}
+                <MonthPicker
+                    visible={monthPickerVisible}
+                    onClose={() => setMonthPickerVisible(false)}
+                    selectedYear={selectedMonth.year}
+                    selectedMonth={selectedMonth.month}
+                    onSelectMonth={handleMonthSelect}
+                    hasTransactionsInMonth={hasTransactionsInMonth}
+                    getPreviousYearWithTransactions={getPreviousYearWithTransactions}
+                    getNextYearWithTransactions={getNextYearWithTransactions}
+                    availableYears={availableYears}
+                />
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -457,8 +459,11 @@ const createStyles = (colors: any) => StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    scrollView: {
+        flex: 1,
+    },
     header: {
-        paddingTop: 60,
+        paddingTop: 16,
         paddingHorizontal: 24,
         paddingBottom: 20,
     },

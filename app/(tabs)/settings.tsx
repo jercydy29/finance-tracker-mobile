@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Linking, SafeAreaView } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeMode } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -204,77 +204,79 @@ export default function SettingsScreen() {
     const styles = createStyles(colors);
 
     return (
-        <ScrollView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.title}>Settings</Text>
-            </View>
-
-            {/* Appearance Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Appearance</Text>
-                <View style={styles.card}>
-                    {appearanceSettings.map((item, index) => (
-                        <SettingRow
-                            key={item.label}
-                            item={item}
-                            isLast={index === appearanceSettings.length - 1}
-                            colors={colors}
-                        />
-                    ))}
+        <SafeAreaView style={styles.container}>
+            <ScrollView style={styles.scrollView}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Settings</Text>
                 </View>
-            </View>
 
-            {/* Data Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Data</Text>
-                <View style={styles.card}>
-                    {dataSettings.map((item, index) => (
-                        <SettingRow
-                            key={item.label}
-                            item={item}
-                            isLast={index === dataSettings.length - 1}
-                            colors={colors}
-                        />
-                    ))}
+                {/* Appearance Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Appearance</Text>
+                    <View style={styles.card}>
+                        {appearanceSettings.map((item, index) => (
+                            <SettingRow
+                                key={item.label}
+                                item={item}
+                                isLast={index === appearanceSettings.length - 1}
+                                colors={colors}
+                            />
+                        ))}
+                    </View>
                 </View>
-            </View>
 
-            {/* App Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>App</Text>
-                <View style={styles.card}>
-                    {appSettings.map((item, index) => (
-                        <SettingRow
-                            key={item.label}
-                            item={item}
-                            isLast={index === appSettings.length - 1}
-                            colors={colors}
-                        />
-                    ))}
+                {/* Data Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Data</Text>
+                    <View style={styles.card}>
+                        {dataSettings.map((item, index) => (
+                            <SettingRow
+                                key={item.label}
+                                item={item}
+                                isLast={index === dataSettings.length - 1}
+                                colors={colors}
+                            />
+                        ))}
+                    </View>
                 </View>
-            </View>
 
-            {/* Support Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Support</Text>
-                <View style={styles.card}>
-                    {supportSettings.map((item, index) => (
-                        <SettingRow
-                            key={item.label}
-                            item={item}
-                            isLast={index === supportSettings.length - 1}
-                            colors={colors}
-                        />
-                    ))}
+                {/* App Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>App</Text>
+                    <View style={styles.card}>
+                        {appSettings.map((item, index) => (
+                            <SettingRow
+                                key={item.label}
+                                item={item}
+                                isLast={index === appSettings.length - 1}
+                                colors={colors}
+                            />
+                        ))}
+                    </View>
                 </View>
-            </View>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-                <Text style={styles.footerText}>Made with love using Expo</Text>
-            </View>
-        </ScrollView>
+                {/* Support Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Support</Text>
+                    <View style={styles.card}>
+                        {supportSettings.map((item, index) => (
+                            <SettingRow
+                                key={item.label}
+                                item={item}
+                                isLast={index === supportSettings.length - 1}
+                                colors={colors}
+                            />
+                        ))}
+                    </View>
+                </View>
+
+                {/* Footer */}
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>Made with love using Expo</Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -332,8 +334,11 @@ const createStyles = (colors: any) => StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    scrollView: {
+        flex: 1,
+    },
     header: {
-        paddingTop: 60,
+        paddingTop: 16,
         paddingHorizontal: 24,
         paddingBottom: 20,
     },
