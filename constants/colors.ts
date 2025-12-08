@@ -1,7 +1,7 @@
 export const colors = {
     // Primary
-    amber400: '#fbbf24',
-    amber600: '#d97706',
+    amber400: '#E08D6C', // Crail Light
+    amber600: '#C15F3C', // Crail
 
     // Success (income)
     emerald600: '#059669',
@@ -11,16 +11,16 @@ export const colors = {
     red600: '#dc2626',
 
     // Neutral backgrounds
-    stone50: '#fafaf9',
-    stone100: '#f5f5f4',
-    stone200: '#e7e5e4',
+    stone50: '#F4F3EE', // Pampas
+    stone100: '#E0DED7', // Cloudy Light
+    stone200: '#B1ADA1', // Cloudy
 
     // Text
     stone800: '#1c1917',
     stone700: '#44403c',
     stone600: '#57534e',
     stone500: '#78716c',
-    stone400: '#a8a29e',
+    stone400: '#B1ADA1', // Cloudy
 
     // Additional colors from mockup
     white: '#ffffff',
