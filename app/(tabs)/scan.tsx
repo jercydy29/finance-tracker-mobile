@@ -166,7 +166,7 @@ export default function ScanScreen() {
                 {uploading && processingStep && (
                     <View style={styles.processingOverlay}>
                         <View style={styles.processingCard}>
-                            <ActivityIndicator size="large" color={colors.amber600} />
+                            <ActivityIndicator size="large" color={colors.amber400} />
                             <Text style={styles.processingText}>{processingStep}</Text>
                         </View>
                     </View>

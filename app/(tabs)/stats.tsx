@@ -67,7 +67,12 @@ export default function StatsScreen() {
         <ScrollView 
             style={styles.container}
             refreshControl={
-                <RefreshControl refreshing={loading} onRefresh={refetch} />
+                <RefreshControl
+                    refreshing={loading}
+                    onRefresh={refetch}
+                    tintColor={colors.amber400}
+                    colors={[colors.amber400]}
+                />
             }
         >
             {/* Header with Month Navigation */}
@@ -105,7 +110,7 @@ export default function StatsScreen() {
                         <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={isCurrentMonth ? colors.stone300 : colors.textPrimary}
+                            color={isCurrentMonth ? colors.textPlaceholder : colors.textPrimary}
                         />
                     </Pressable>
                 </View>
@@ -113,7 +118,7 @@ export default function StatsScreen() {
 
             {loading && stats.income === 0 && stats.expenses === 0 ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.amber600} />
+                    <ActivityIndicator size="large" color={colors.amber400} />
                     <Text style={styles.loadingText}>Loading statistics...</Text>
                 </View>
             ) : (

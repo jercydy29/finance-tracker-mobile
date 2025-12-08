@@ -96,7 +96,7 @@ export function MonthPicker({
                             <Ionicons
                                 name="chevron-back"
                                 size={24}
-                                color={canGoPrevious ? colors.stone800 : colors.stone300}
+                                color={canGoPrevious ? colors.textPrimary : colors.textPlaceholder}
                             />
                         </Pressable>
 
@@ -116,7 +116,7 @@ export function MonthPicker({
                             <Ionicons
                                 name="chevron-forward"
                                 size={24}
-                                color={canGoNext ? colors.stone800 : colors.stone300}
+                                color={canGoNext ? colors.textPrimary : colors.textPlaceholder}
                             />
                         </Pressable>
                     </View>

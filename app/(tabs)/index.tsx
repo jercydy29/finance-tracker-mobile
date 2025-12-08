@@ -1,12 +1,12 @@
+import { MonthPicker } from '@/components/MonthPicker';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTransactions } from '@/hooks/useTransactions';
-import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, FlatList, StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
     const { colors } = useTheme();
@@ -123,26 +123,28 @@ export default function HomeScreen() {
             {/* Balance Card */}
             <View style={styles.balanceCard}>
                 <Text style={styles.balanceLabel}>Monthly Balance</Text>
-                <Text style={styles.balanceAmount}>{formatCurrency(totals.balance)}</Text>
+                <Text style={styles.balanceAmount} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatCurrency(totals.balance)}
+                </Text>
 
                 <View style={styles.summaryRow}>
-                    <View style={styles.summaryItem}>
-                        <View style={[styles.iconCircle, { backgroundColor: colors.emerald600 }]}>
-                            <Ionicons name="arrow-down" size={20} color={colors.white} />
-                        </View>
-                        <View>
+                    <View style={styles.summaryItemWrapper}>
+                        <View style={[styles.indicator, { backgroundColor: colors.emerald600 }]} />
+                        <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Income</Text>
-                            <Text style={styles.summaryAmount}>{formatCurrency(totals.income)}</Text>
+                            <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
+                                {formatCurrency(totals.income)}
+                            </Text>
                         </View>
                     </View>
 
-                    <View style={styles.summaryItem}>
-                        <View style={[styles.iconCircle, { backgroundColor: colors.red600 }]}>
-                            <Ionicons name="arrow-up" size={20} color={colors.white} />
-                        </View>
-                        <View>
+                    <View style={styles.summaryItemWrapper}>
+                        <View style={[styles.indicator, { backgroundColor: colors.red600 }]} />
+                        <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Expenses</Text>
-                            <Text style={styles.summaryAmount}>{formatCurrency(totals.expenses)}</Text>
+                            <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
+                                {formatCurrency(totals.expenses)}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -164,7 +166,7 @@ export default function HomeScreen() {
                         <Ionicons
                             name="chevron-back"
                             size={20}
-                            color={hasPreviousMonth ? colors.stone800 : colors.stone300}
+                            color={hasPreviousMonth ? colors.textPrimary : colors.textPlaceholder}
                         />
                     </Pressable>
                     <Pressable
@@ -175,7 +177,7 @@ export default function HomeScreen() {
                         ]}
                     >
                         <Text style={styles.monthText}>{monthLabel}</Text>
-                        <Ionicons name="chevron-down" size={16} color={colors.stone500} />
+                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
                     </Pressable>
                     <Pressable
                         onPress={handleNextMonth}
@@ -189,7 +191,7 @@ export default function HomeScreen() {
                         <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={isCurrentMonth ? colors.stone300 : colors.stone800}
+                            color={isCurrentMonth ? colors.textPlaceholder : colors.textPrimary}
                         />
                     </Pressable>
                 </View>
@@ -202,7 +204,7 @@ export default function HomeScreen() {
         if (!loadingMore) return null;
         return (
             <View style={styles.loadingMoreContainer}>
-                <ActivityIndicator size="small" color={colors.amber600} />
+                <ActivityIndicator size="small" color={colors.amber400} />
                 <Text style={styles.loadingMoreText}>Loading more...</Text>
             </View>
         );
@@ -213,7 +215,7 @@ export default function HomeScreen() {
         if (loading) {
             return (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.amber600} />
+                    <ActivityIndicator size="large" color={colors.amber400} />
                     <Text style={styles.loadingText}>Loading transactions...</Text>
                 </View>
             );
@@ -258,12 +260,17 @@ export default function HomeScreen() {
                 ListEmptyComponent={ListEmpty}
                 contentContainerStyle={styles.listContent}
                 refreshControl={
-                    <RefreshControl refreshing={loading && transactions.length > 0} onRefresh={refetch} />
+                    <RefreshControl
+                        refreshing={loading && transactions.length > 0}
+                        onRefresh={refetch}
+                        tintColor={colors.amber400}
+                        colors={[colors.amber400]}
+                    />
                 }
                 onEndReached={loadMore}
                 onEndReachedThreshold={0.3}
             />
-            
+
             <MonthPicker
                 visible={monthPickerVisible}
                 onClose={() => setMonthPickerVisible(false)}
@@ -358,27 +365,21 @@ function TransactionItem({
             friction={2}
         >
             <Pressable style={styles.transactionItem} onPress={handlePress}>
-            <View style={[
-                styles.transactionIcon,
-                { backgroundColor: isExpense ? colors.lightPink : colors.mintGreen }
-            ]}>
-                <Ionicons
-                    name={isExpense ? 'remove' : 'add'}
-                    size={20}
-                    color={isExpense ? colors.red600 : colors.emerald600}
-                />
-            </View>
-            <View style={styles.transactionDetails}>
-                <Text style={styles.transactionTitle}>{title}</Text>
-                <Text style={styles.transactionDate}>{category} • {date}</Text>
-            </View>
-            <Text style={[
-                styles.transactionAmount,
-                { color: isExpense ? colors.red600 : colors.emerald600 }
-            ]}>
-                {formatAmount(amount, isExpense)}
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.stone400} style={{ marginLeft: 8 }} />
+                <View style={[
+                    styles.transactionIndicator,
+                    { backgroundColor: isExpense ? colors.red600 : colors.emerald600 }
+                ]} />
+                <View style={styles.transactionDetails}>
+                    <Text style={styles.transactionTitle}>{title}</Text>
+                    <Text style={styles.transactionDate}>{category} • {date}</Text>
+                </View>
+                <Text style={[
+                    styles.transactionAmount,
+                    { color: isExpense ? colors.red600 : colors.emerald600 }
+                ]}>
+                    {formatAmount(amount, isExpense)}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ alignSelf: 'center' }} />
             </Pressable>
         </Swipeable>
     );
@@ -435,8 +436,8 @@ const createStyles = (colors: any) => StyleSheet.create({
         borderRadius: 20,
         padding: 24,
         marginBottom: 24,
-        borderWidth: 1,
-        borderColor: colors.border,
+        // borderWidth: 1,
+        // borderColor: colors.border,
     },
     balanceLabel: {
         fontSize: 14,
@@ -453,21 +454,20 @@ const createStyles = (colors: any) => StyleSheet.create({
         flexDirection: 'row',
         gap: 16,
     },
-    summaryItem: {
+    summaryItemWrapper: {
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
+    },
+    summaryItem: {
         backgroundColor: colors.surfaceSecondary,
         padding: 16,
         borderRadius: 12,
-        gap: 12,
     },
-    iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
+    indicator: {
+        width: '85%',
+        height: 4,
+        borderRadius: 2,
+        marginBottom: 6,
+        alignSelf: 'center',
     },
     summaryLabel: {
         fontSize: 12,
@@ -527,20 +527,17 @@ const createStyles = (colors: any) => StyleSheet.create({
     },
     transactionItem: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
         backgroundColor: colors.surface,
         marginHorizontal: 24,
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
+        gap: 12,
     },
-    transactionIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
+    transactionIndicator: {
+        width: 4,
+        borderRadius: 2,
     },
     transactionDetails: {
         flex: 1,
@@ -558,6 +555,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     transactionAmount: {
         fontSize: 16,
         fontWeight: '600',
+        alignSelf: 'center',
     },
     deleteAction: {
         backgroundColor: colors.red600,
