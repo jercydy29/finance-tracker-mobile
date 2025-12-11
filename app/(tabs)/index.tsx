@@ -91,9 +91,9 @@ export default function HomeScreen() {
     }, [setMonth]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('ja-JP', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'JPY',
         }).format(amount);
     };
 
@@ -318,9 +318,9 @@ function TransactionItem({
     const swipeableRef = useRef<Swipeable>(null);
 
     const formatAmount = (amt: number, isExp: boolean) => {
-        const formatted = new Intl.NumberFormat('en-US', {
+        const formatted = new Intl.NumberFormat('ja-JP', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'JPY',
         }).format(amt);
         return isExp ? `-${formatted}` : `+${formatted}`;
     };

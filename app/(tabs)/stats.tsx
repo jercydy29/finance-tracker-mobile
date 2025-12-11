@@ -4,7 +4,8 @@ import { useStats } from '@/hooks/useStats';
 import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 // Try to import react-native-svg, fallback to simple view if not available
 let Svg: any, Path: any, Circle: any;
@@ -38,11 +39,23 @@ export default function StatsScreen() {
     } = useStats();
 
     const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+    const isFirstFocus = useRef(true);
+
+    // Refetch when screen comes back into focus (not on initial mount)
+    useFocusEffect(
+        useCallback(() => {
+            if (isFirstFocus.current) {
+                isFirstFocus.current = false;
+                return;
+            }
+            refetch();
+        }, [refetch])
+    );
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('ja-JP', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'JPY',
         }).format(amount);
     };
 

@@ -34,16 +34,34 @@ export default function AddScreen() {
 
     const { addTransaction } = useTransactions();
     const [type, setType] = useState<TransactionType>('expense');
-    const [amount, setAmount] = useState(params.amount || '');
+    const [amount, setAmount] = useState(params.amount || ''); // Raw value without commas
+    const [displayAmount, setDisplayAmount] = useState(''); // Formatted with commas
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
     const [receiptUrl, setReceiptUrl] = useState(params.receiptUrl || '');
     const [saving, setSaving] = useState(false);
 
+    // Format number with commas
+    const formatWithCommas = (value: string) => {
+        const num = value.replace(/,/g, '');
+        if (!num) return '';
+        return Number(num).toLocaleString('ja-JP');
+    };
+
+    // Handle amount change with formatting
+    const handleAmountChange = (text: string) => {
+        // Remove non-numeric characters except for the input
+        const rawValue = text.replace(/[^0-9]/g, '');
+        setAmount(rawValue);
+        setDisplayAmount(rawValue ? formatWithCommas(rawValue) : '');
+    };
+
     // Sync form state when URL params change (e.g., new receipt scanned)
     useEffect(() => {
-        setAmount(params.amount || '');
+        const rawAmount = params.amount || '';
+        setAmount(rawAmount);
+        setDisplayAmount(rawAmount ? formatWithCommas(rawAmount) : '');
         setCategory(params.category || '');
         setDescription(params.description || '');
         setDate(params.date ? new Date(params.date) : new Date());
@@ -64,6 +82,7 @@ export default function AddScreen() {
                     onPress: () => {
                         setReceiptUrl('');
                         setAmount('');
+                        setDisplayAmount('');
                         setCategory('');
                         setDescription('');
                         setDate(new Date());
@@ -126,6 +145,7 @@ export default function AddScreen() {
                     onPress: () => {
                         // Reset form
                         setAmount('');
+                        setDisplayAmount('');
                         setCategory('');
                         setDescription('');
                         setDate(new Date());
@@ -199,14 +219,14 @@ export default function AddScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Amount</Text>
                         <View style={styles.amountInputContainer}>
-                            <Text style={styles.currencySymbol}>$</Text>
+                            <Text style={styles.currencySymbol}>¥</Text>
                             <TextInput
                                 style={styles.amountInput}
-                                value={amount}
-                                onChangeText={setAmount}
-                                placeholder="0.00"
+                                value={displayAmount}
+                                onChangeText={handleAmountChange}
+                                placeholder="0"
                                 placeholderTextColor={colors.stone400}
-                                keyboardType="decimal-pad"
+                                keyboardType="number-pad"
                             />
                         </View>
                     </View>

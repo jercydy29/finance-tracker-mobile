@@ -36,7 +36,8 @@ export default function EditScreen() {
 
     const { updateTransaction, deleteTransaction } = useTransactions();
     const [type, setType] = useState<TransactionType>(params.type || 'expense');
-    const [amount, setAmount] = useState(params.amount || '');
+    const [amount, setAmount] = useState(params.amount || ''); // Raw value without commas
+    const [displayAmount, setDisplayAmount] = useState(''); // Formatted with commas
     const [category, setCategory] = useState(params.category || '');
     const [description, setDescription] = useState(params.description || '');
     const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
@@ -44,10 +45,26 @@ export default function EditScreen() {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    // Format number with commas
+    const formatWithCommas = (value: string) => {
+        const num = value.replace(/,/g, '');
+        if (!num) return '';
+        return Number(num).toLocaleString('ja-JP');
+    };
+
+    // Handle amount change with formatting
+    const handleAmountChange = (text: string) => {
+        const rawValue = text.replace(/[^0-9]/g, '');
+        setAmount(rawValue);
+        setDisplayAmount(rawValue ? formatWithCommas(rawValue) : '');
+    };
+
     // Sync state when params change (important for tab-based navigation)
     useEffect(() => {
+        const rawAmount = params.amount || '';
         setType(params.type || 'expense');
-        setAmount(params.amount || '');
+        setAmount(rawAmount);
+        setDisplayAmount(rawAmount ? formatWithCommas(rawAmount) : '');
         setCategory(params.category || '');
         setDescription(params.description || '');
         setDate(params.date ? new Date(params.date) : new Date());
@@ -251,14 +268,14 @@ export default function EditScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Amount</Text>
                         <View style={styles.amountInputContainer}>
-                            <Text style={styles.currencySymbol}>$</Text>
+                            <Text style={styles.currencySymbol}>¥</Text>
                             <TextInput
                                 style={styles.amountInput}
-                                value={amount}
-                                onChangeText={setAmount}
-                                placeholder="0.00"
+                                value={displayAmount}
+                                onChangeText={handleAmountChange}
+                                placeholder="0"
                                 placeholderTextColor={colors.stone400}
-                                keyboardType="decimal-pad"
+                                keyboardType="number-pad"
                             />
                         </View>
                     </View>

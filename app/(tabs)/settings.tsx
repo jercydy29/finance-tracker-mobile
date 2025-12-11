@@ -162,7 +162,7 @@ export default function SettingsScreen() {
     const dataSettings: SettingItem[] = [
         {
             icon: 'download-outline',
-            label: 'Export Transactions',
+            label: 'Export ',
             value: `${transactionCount} transactions`,
             onPress: handleExportData,
         },
@@ -170,7 +170,7 @@ export default function SettingsScreen() {
             icon: 'trash-outline',
             label: 'Clear All Data',
             onPress: handleClearData,
-            danger: true,
+            
         },
     ];
 
