@@ -27,6 +27,7 @@ export default function StatsScreen() {
         loading,
         monthLabel,
         isCurrentMonth,
+        isEarliestMonth,
         goToPreviousMonth,
         goToNextMonth,
         selectedMonth,
@@ -106,10 +107,16 @@ export default function StatsScreen() {
                             onPress={handlePreviousMonth}
                             style={({ pressed }) => [
                                 styles.monthNavButton,
-                                pressed && { transform: [{ scale: 0.9 }] },
+                                isEarliestMonth && styles.monthNavButtonDisabled,
+                                pressed && !isEarliestMonth && { transform: [{ scale: 0.9 }] },
                             ]}
+                            disabled={isEarliestMonth}
                         >
-                            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+                            <Ionicons
+                                name="chevron-back"
+                                size={20}
+                                color={isEarliestMonth ? colors.textPlaceholder : colors.textPrimary}
+                            />
                         </Pressable>
                         <Pressable
                             onPress={() => setMonthPickerVisible(true)}

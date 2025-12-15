@@ -1,22 +1,27 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/services/supabase';
 import type { Transaction } from '@/features/transactions/types';
+import { useMonth } from '@/contexts/MonthContext';
 
 const PAGE_SIZE = 10;
 
 export function useTransactions() {
+    // Use shared month state from context
+    const {
+        selectedMonth,
+        setMonth,
+        goToPreviousMonth,
+        goToNextMonth,
+        isCurrentMonth,
+        monthLabel,
+    } = useMonth();
+
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
-    // Month filter state (defaults to current month)
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const now = new Date();
-        return { year: now.getFullYear(), month: now.getMonth() };
-    });
-    
+
     // Totals for selected month
     const [totals, setTotals] = useState({ income: 0, expenses: 0, balance: 0 });
     
@@ -168,10 +173,6 @@ export function useTransactions() {
         }
     }, [transactions.length, loadingMore, hasMore, getMonthDateRange]);
 
-    // Set month directly (for month picker)
-    const setMonth = useCallback((year: number, month: number) => {
-        setSelectedMonth({ year, month });
-    }, []);
 
     // Check if a specific month has transactions
     const hasTransactionsInMonth = useCallback((year: number, month: number) => {
@@ -195,32 +196,6 @@ export function useTransactions() {
         return sortedYears[0] || null;
     }, [availableYears]);
 
-    // Navigate to previous month
-    const goToPreviousMonth = useCallback(() => {
-        setSelectedMonth((prev) => {
-            if (prev.month === 0) {
-                return { year: prev.year - 1, month: 11 };
-            }
-            return { year: prev.year, month: prev.month - 1 };
-        });
-    }, []);
-
-    // Navigate to next month
-    const goToNextMonth = useCallback(() => {
-        setSelectedMonth((prev) => {
-            if (prev.month === 11) {
-                return { year: prev.year + 1, month: 0 };
-            }
-            return { year: prev.year, month: prev.month + 1 };
-        });
-    }, []);
-
-    // Check if we're on current month
-    const isCurrentMonth = useCallback(() => {
-        const now = new Date();
-        return selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
-    }, [selectedMonth]);
-
     // Check if there are any months before current selection with transactions
     const hasPreviousMonthWithTransactions = useCallback(() => {
         const { year, month } = selectedMonth;
@@ -238,12 +213,6 @@ export function useTransactions() {
 
         return false;
     }, [selectedMonth, availableMonths]);
-
-    // Get formatted month label
-    const getMonthLabel = useCallback(() => {
-        const date = new Date(selectedMonth.year, selectedMonth.month);
-        return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
-    }, [selectedMonth]);
 
     // Add a new transaction
     const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
@@ -355,8 +324,8 @@ export function useTransactions() {
         error,
         totals,
         selectedMonth,
-        monthLabel: getMonthLabel(),
-        isCurrentMonth: isCurrentMonth(),
+        monthLabel,
+        isCurrentMonth,
         hasPreviousMonth: hasPreviousMonthWithTransactions(),
         goToPreviousMonth,
         goToNextMonth,

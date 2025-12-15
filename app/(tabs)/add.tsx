@@ -149,6 +149,7 @@ export default function AddScreen() {
                         setCategory('');
                         setDescription('');
                         setDate(new Date());
+                        setReceiptUrl('');
                         // Navigate back to home (replace to avoid stacking)
                         router.replace('/');
                     },

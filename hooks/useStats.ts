@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/services/supabase';
+import { useMonth } from '@/contexts/MonthContext';
 
 type CategoryBreakdown = {
     category: string;
@@ -41,6 +42,16 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function useStats() {
+    // Use shared month state from context
+    const {
+        selectedMonth,
+        setMonth,
+        goToPreviousMonth,
+        goToNextMonth,
+        isCurrentMonth,
+        monthLabel,
+    } = useMonth();
+
     const [stats, setStats] = useState<StatsData>({
         income: 0,
         expenses: 0,
@@ -50,12 +61,6 @@ export function useStats() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
-    // Selected month state (defaults to current month)
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const now = new Date();
-        return { year: now.getFullYear(), month: now.getMonth() };
-    });
 
     // Available months with transactions (for month picker)
     const [availableMonths, setAvailableMonths] = useState<Set<string>>(new Set());
@@ -193,30 +198,6 @@ export function useStats() {
         }
     }, [getMonthDateRange, selectedMonth, fetchAvailableMonths]);
 
-    // Navigate months
-    const goToPreviousMonth = useCallback(() => {
-        setSelectedMonth((prev) => {
-            if (prev.month === 0) {
-                return { year: prev.year - 1, month: 11 };
-            }
-            return { year: prev.year, month: prev.month - 1 };
-        });
-    }, []);
-
-    const goToNextMonth = useCallback(() => {
-        setSelectedMonth((prev) => {
-            if (prev.month === 11) {
-                return { year: prev.year + 1, month: 0 };
-            }
-            return { year: prev.year, month: prev.month + 1 };
-        });
-    }, []);
-
-    // Set month directly (for month picker)
-    const setMonth = useCallback((year: number, month: number) => {
-        setSelectedMonth({ year, month });
-    }, []);
-
     // Check if a specific month has transactions
     const hasTransactionsInMonth = useCallback((year: number, month: number) => {
         return availableMonths.has(`${year}-${month}`);
@@ -234,17 +215,21 @@ export function useStats() {
         return sortedYears[0] || null;
     }, [availableYears]);
 
-    // Check if we're on current month
-    const isCurrentMonth = useCallback(() => {
-        const now = new Date();
-        return selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
-    }, [selectedMonth]);
+    // Check if we're at the earliest month with data
+    const isEarliestMonth = useCallback(() => {
+        if (availableMonths.size === 0) return true;
 
-    // Get formatted month label
-    const getMonthLabel = useCallback(() => {
-        const date = new Date(selectedMonth.year, selectedMonth.month);
-        return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
-    }, [selectedMonth]);
+        // Find earliest month from available data
+        let earliest = { year: Infinity, month: 0 };
+        availableMonths.forEach((key) => {
+            const [year, month] = key.split('-').map(Number);
+            if (year < earliest.year || (year === earliest.year && month < earliest.month)) {
+                earliest = { year, month };
+            }
+        });
+
+        return selectedMonth.year === earliest.year && selectedMonth.month === earliest.month;
+    }, [selectedMonth, availableMonths]);
 
     // Fetch when month changes
     useEffect(() => {
@@ -261,8 +246,9 @@ export function useStats() {
         loading,
         error,
         selectedMonth,
-        monthLabel: getMonthLabel(),
-        isCurrentMonth: isCurrentMonth(),
+        monthLabel,
+        isCurrentMonth,
+        isEarliestMonth: isEarliestMonth(),
         goToPreviousMonth,
         goToNextMonth,
         setMonth,
