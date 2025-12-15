@@ -39,6 +39,7 @@ export default function StatsScreen() {
     } = useStats();
 
     const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const isFirstFocus = useRef(true);
 
     // Refetch when screen comes back into focus (not on initial mount)
@@ -48,9 +49,17 @@ export default function StatsScreen() {
                 isFirstFocus.current = false;
                 return;
             }
+            // Silent refetch (no loading indicator)
             refetch();
         }, [refetch])
     );
+
+    // Manual pull-to-refresh handler
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await refetch();
+        setRefreshing(false);
+    }, [refetch]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('ja-JP', {
@@ -82,8 +91,8 @@ export default function StatsScreen() {
                 style={styles.scrollView}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading}
-                        onRefresh={refetch}
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
                         tintColor={colors.amber400}
                         colors={[colors.amber400]}
                     />
