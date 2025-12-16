@@ -1,13 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Linking, SafeAreaView } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeMode } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/services/supabase';
-import { useState, useEffect } from 'react';
-import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
+import { useEffect, useState } from 'react';
+import { Alert, Linking, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 type SettingItem = {
     icon: keyof typeof Ionicons.glyphMap;
@@ -22,8 +22,46 @@ export default function SettingsScreen() {
     const [transactionCount, setTransactionCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState(false);
+    const [showExportPicker, setShowExportPicker] = useState(false);
+    const [exportType, setExportType] = useState<'month' | 'year' | null>(null);
+    const [exportYear, setExportYear] = useState(new Date().getFullYear());
+    const [exportMonth, setExportMonth] = useState(new Date().getMonth());
+    const [availableYears, setAvailableYears] = useState<Set<number>>(new Set());
+    const [availableMonths, setAvailableMonths] = useState<Map<number, Set<number>>>(new Map());
 
     const appVersion = Constants.expoConfig?.version || '1.0.0';
+
+    // Fetch available years and months with transaction data
+    const fetchAvailableDates = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('date');
+
+            if (error || !data) return;
+
+            const years = new Set<number>();
+            const monthsByYear = new Map<number, Set<number>>();
+
+            for (const { date } of data) {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = d.getMonth();
+
+                years.add(year);
+
+                if (!monthsByYear.has(year)) {
+                    monthsByYear.set(year, new Set());
+                }
+                monthsByYear.get(year)!.add(month);
+            }
+
+            setAvailableYears(years);
+            setAvailableMonths(monthsByYear);
+        } catch (error) {
+            console.error('Error fetching available dates:', error);
+        }
+    };
 
     // Fetch stats on mount
     useEffect(() => {
@@ -84,29 +122,94 @@ export default function SettingsScreen() {
         }
     };
 
-    const handleExportData = async () => {
+    const handleExportData = () => {
         if (exporting) return;
-
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        Alert.alert(
+            'Export Transactions',
+            'Choose export range',
+            [
+                {
+                    text: 'By Month',
+                    onPress: async () => {
+                        await fetchAvailableDates();
+                        setExportType('month');
+                        setShowExportPicker(true);
+                    },
+                },
+                {
+                    text: 'By Year',
+                    onPress: async () => {
+                        await fetchAvailableDates();
+                        setExportType('year');
+                        setShowExportPicker(true);
+                    },
+                },
+                {
+                    text: 'Lifetime',
+                    onPress: () => performExport('lifetime'),
+                },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
+
+    // Helper functions for checking data availability
+    const hasDataForYear = (year: number) => availableYears.has(year);
+    const hasDataForMonth = (year: number, month: number) => availableMonths.get(year)?.has(month) ?? false;
+    const hasPrevYear = () => {
+        const minYear = Math.min(...Array.from(availableYears));
+        return exportYear > minYear;
+    };
+    const hasNextYear = () => {
+        const maxYear = Math.max(...Array.from(availableYears));
+        return exportYear < maxYear;
+    };
+
+    const performExport = async (type: 'month' | 'year' | 'lifetime', year?: number, month?: number) => {
+        setShowExportPicker(false);
+
+        // Wait for modal to fully dismiss before proceeding (prevents iOS share sheet conflict)
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         setExporting(true);
 
         try {
-            // Get current month for filename
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const filename = `transactions_${year}-${month}.csv`;
-
-            // Fetch all transactions
-            const { data: transactions, error } = await supabase
+            let filename: string;
+            let query = supabase
                 .from('transactions')
                 .select('date, type, category, amount, description')
                 .order('date', { ascending: false });
 
+            console.log('Starting export:', { type, year, month });
+
+            if (type === 'month' && year !== undefined && month !== undefined) {
+                const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                const endDate = new Date(year, month + 1, 0); // Last day of month
+                const endDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+                console.log('Month export dates:', { startDate, endDateStr });
+
+                query = query.gte('date', startDate).lte('date', endDateStr);
+                filename = `transactions_${year}-${String(month + 1).padStart(2, '0')}.csv`;
+            } else if (type === 'year' && year !== undefined) {
+                console.log('Year export dates:', { year });
+                query = query.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
+                filename = `transactions_${year}.csv`;
+            } else {
+                console.log('Lifetime export');
+                filename = `transactions_lifetime.csv`;
+            }
+
+            console.log('Executing query...');
+            const { data: transactions, error } = await query;
+            console.log('Query finished, rows:', transactions?.length, 'error:', error);
+
             if (error) throw error;
 
             if (!transactions || transactions.length === 0) {
-                Alert.alert('No Data', 'There are no transactions to export.');
+                Alert.alert('No Data', 'There are no transactions for the selected period.');
                 return;
             }
 
@@ -127,26 +230,26 @@ export default function SettingsScreen() {
 
             const csvContent = csvRows.join('\n');
 
-            // Write to file
-            const filePath = `${FileSystem.cacheDirectory}${filename}`;
-            await FileSystem.writeAsStringAsync(filePath, csvContent, {
-                encoding: FileSystem.EncodingType.UTF8,
-            });
+            // Write to file and share
+            const fileUri = FileSystem.documentDirectory + filename;
+            await FileSystem.writeAsStringAsync(fileUri, csvContent);
 
-            // Check if sharing is available
-            const isAvailable = await Sharing.isAvailableAsync();
-            if (!isAvailable) {
-                Alert.alert('Error', 'Sharing is not available on this device.');
+            if (!(await Sharing.isAvailableAsync())) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                Alert.alert('Error', 'Sharing is not available on this device');
                 return;
             }
 
             // Share the file
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            await Sharing.shareAsync(filePath, {
+            await Sharing.shareAsync(fileUri, {
                 mimeType: 'text/csv',
                 dialogTitle: 'Export Transactions',
-                UTI: 'public.comma-separated-values-text',
+                UTI: 'public.comma-separated-values-text'
             });
+
+            // Success feedback happens naturally via the share sheet, 
+            // but we can give a small haptic feedback when the sheet opens
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         } catch (error) {
             console.error('Export error:', error);
@@ -237,7 +340,7 @@ export default function SettingsScreen() {
             icon: 'trash-outline',
             label: 'Clear All Data',
             onPress: handleClearData,
-            
+
         },
     ];
 
@@ -343,6 +446,133 @@ export default function SettingsScreen() {
                     <Text style={styles.footerText}>Made with love using Expo</Text>
                 </View>
             </ScrollView>
+
+            {/* Export Date Picker Modal */}
+            <Modal
+                visible={showExportPicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowExportPicker(false)}
+            >
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setShowExportPicker(false)}
+                >
+                    <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+                        <Text style={styles.modalTitle}>
+                            {exportType === 'month' ? 'Select Month' : 'Select Year'}
+                        </Text>
+
+                        {/* Year Navigation */}
+                        <View style={styles.yearNav}>
+                            <Pressable
+                                onPress={() => {
+                                    if (!hasPrevYear()) return;
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    setExportYear(exportYear - 1);
+                                }}
+                                style={[styles.yearNavButton, !hasPrevYear() && styles.yearNavButtonDisabled]}
+                                disabled={!hasPrevYear()}
+                            >
+                                <Ionicons
+                                    name="chevron-back"
+                                    size={24}
+                                    color={hasPrevYear() ? colors.textPrimary : colors.textPlaceholder}
+                                />
+                            </Pressable>
+                            <Text style={[
+                                styles.yearText,
+                                !hasDataForYear(exportYear) && styles.yearTextDisabled
+                            ]}>
+                                {exportYear}
+                            </Text>
+                            <Pressable
+                                onPress={() => {
+                                    if (!hasNextYear()) return;
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    setExportYear(exportYear + 1);
+                                }}
+                                style={[styles.yearNavButton, !hasNextYear() && styles.yearNavButtonDisabled]}
+                                disabled={!hasNextYear()}
+                            >
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={24}
+                                    color={hasNextYear() ? colors.textPrimary : colors.textPlaceholder}
+                                />
+                            </Pressable>
+                        </View>
+
+                        {/* Month Grid (only for month export) */}
+                        {exportType === 'month' && (
+                            <View style={styles.monthGrid}>
+                                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+                                    const hasData = hasDataForMonth(exportYear, index);
+                                    const isSelected = exportMonth === index;
+                                    return (
+                                        <Pressable
+                                            key={month}
+                                            style={[
+                                                styles.monthButton,
+                                                isSelected && hasData && styles.monthButtonSelected,
+                                                !hasData && styles.monthButtonDisabled,
+                                            ]}
+                                            onPress={() => {
+                                                if (!hasData) return;
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                setExportMonth(index);
+                                            }}
+                                            disabled={!hasData}
+                                        >
+                                            <Text style={[
+                                                styles.monthText,
+                                                isSelected && hasData && styles.monthTextSelected,
+                                                !hasData && styles.monthTextDisabled,
+                                            ]}>
+                                                {month}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        {/* Action Buttons */}
+                        <View style={styles.modalActions}>
+                            <Pressable
+                                style={styles.cancelButton}
+                                onPress={() => setShowExportPicker(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </Pressable>
+                            {(() => {
+                                const canExport = exportType === 'month'
+                                    ? hasDataForMonth(exportYear, exportMonth)
+                                    : hasDataForYear(exportYear);
+                                return (
+                                    <Pressable
+                                        style={[styles.exportButton, !canExport && styles.exportButtonDisabled]}
+                                        onPress={() => {
+                                            if (!canExport) return;
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                            if (exportType === 'month') {
+                                                performExport('month', exportYear, exportMonth);
+                                            } else {
+                                                performExport('year', exportYear);
+                                            }
+                                        }}
+                                        disabled={!canExport}
+                                    >
+                                        <Text style={[styles.exportButtonText, !canExport && styles.exportButtonTextDisabled]}>
+                                            Export
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })()}
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -437,6 +667,115 @@ const createStyles = (colors: any) => StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
+        color: colors.textPlaceholder,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: colors.surface,
+        borderRadius: 20,
+        padding: 24,
+        width: '85%',
+        maxWidth: 340,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: colors.textPrimary,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    yearNav: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+        gap: 20,
+    },
+    yearNavButton: {
+        padding: 8,
+    },
+    yearNavButtonDisabled: {
+        opacity: 0.3,
+    },
+    yearText: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: colors.textPrimary,
+        minWidth: 80,
+        textAlign: 'center',
+    },
+    yearTextDisabled: {
+        color: colors.textPlaceholder,
+    },
+    monthGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginBottom: 20,
+    },
+    monthButton: {
+        width: '30%',
+        paddingVertical: 12,
+        borderRadius: 10,
+        backgroundColor: colors.surfaceSecondary,
+        alignItems: 'center',
+    },
+    monthButtonSelected: {
+        backgroundColor: colors.amber600,
+    },
+    monthButtonDisabled: {
+        backgroundColor: colors.surfaceSecondary,
+        opacity: 0.4,
+    },
+    monthText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.textPrimary,
+    },
+    monthTextSelected: {
+        color: '#FFFFFF',
+    },
+    monthTextDisabled: {
+        color: colors.textPlaceholder,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    cancelButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: colors.surfaceSecondary,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.textPrimary,
+    },
+    exportButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: colors.amber600,
+        alignItems: 'center',
+    },
+    exportButtonDisabled: {
+        backgroundColor: colors.surfaceSecondary,
+    },
+    exportButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    exportButtonTextDisabled: {
         color: colors.textPlaceholder,
     },
 });
