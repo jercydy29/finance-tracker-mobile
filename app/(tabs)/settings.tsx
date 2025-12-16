@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
 import { useState, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import Constants from 'expo-constants';
 
 type SettingItem = {
@@ -19,6 +21,7 @@ export default function SettingsScreen() {
     const { colors, themeMode, setThemeMode, isDark } = useTheme();
     const [transactionCount, setTransactionCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
 
     const appVersion = Constants.expoConfig?.version || '1.0.0';
 
@@ -81,13 +84,77 @@ export default function SettingsScreen() {
         }
     };
 
-    const handleExportData = () => {
+    const handleExportData = async () => {
+        if (exporting) return;
+
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        Alert.alert(
-            'Export Data',
-            'This feature will export all your transactions to a CSV file. Coming soon!',
-            [{ text: 'OK' }]
-        );
+        setExporting(true);
+
+        try {
+            // Get current month for filename
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const filename = `transactions_${year}-${month}.csv`;
+
+            // Fetch all transactions
+            const { data: transactions, error } = await supabase
+                .from('transactions')
+                .select('date, type, category, amount, description')
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+
+            if (!transactions || transactions.length === 0) {
+                Alert.alert('No Data', 'There are no transactions to export.');
+                return;
+            }
+
+            // Create CSV content
+            const headers = ['Date', 'Type', 'Category', 'Amount', 'Description'];
+            const csvRows = [headers.join(',')];
+
+            for (const t of transactions) {
+                const row = [
+                    t.date,
+                    t.type,
+                    t.category,
+                    t.amount,
+                    `"${(t.description || '').replace(/"/g, '""')}"` // Escape quotes in description
+                ];
+                csvRows.push(row.join(','));
+            }
+
+            const csvContent = csvRows.join('\n');
+
+            // Write to file
+            const filePath = `${FileSystem.cacheDirectory}${filename}`;
+            await FileSystem.writeAsStringAsync(filePath, csvContent, {
+                encoding: FileSystem.EncodingType.UTF8,
+            });
+
+            // Check if sharing is available
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (!isAvailable) {
+                Alert.alert('Error', 'Sharing is not available on this device.');
+                return;
+            }
+
+            // Share the file
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await Sharing.shareAsync(filePath, {
+                mimeType: 'text/csv',
+                dialogTitle: 'Export Transactions',
+                UTI: 'public.comma-separated-values-text',
+            });
+
+        } catch (error) {
+            console.error('Export error:', error);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert('Export Failed', 'Could not export transactions. Please try again.');
+        } finally {
+            setExporting(false);
+        }
     };
 
     const handleClearData = () => {
@@ -162,8 +229,8 @@ export default function SettingsScreen() {
     const dataSettings: SettingItem[] = [
         {
             icon: 'download-outline',
-            label: 'Export ',
-            value: `${transactionCount} transactions`,
+            label: 'Export Data',
+            value: exporting ? 'Exporting...' : `${transactionCount} transactions`,
             onPress: handleExportData,
         },
         {

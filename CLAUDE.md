@@ -56,33 +56,41 @@ This is a **Mobile Companion App** for the Personal Finance Tracker, built with 
 - **Camera**: expo-camera for taking receipt photos
 - **Image Picker**: expo-image-picker for gallery selection
 - **Storage**: Supabase (shared with web app)
-- **OCR**: Google Cloud Vision API (via backend)
-- **AI Parsing**: Claude API (via backend)
+- **OCR & AI Parsing**: Gemini 2.5 Flash (direct API call for receipt parsing)
 
 ### Key Files and Structure
 
 ```
 finance-tracker-mobile/
 ├── app/                    # Expo Router screens (like Next.js App Router)
-│   ├── _layout.tsx         # Root layout
-│   ├── index.tsx           # Home screen
-│   ├── (tabs)/             # Tab navigation group
-│   │   ├── _layout.tsx     # Tab configuration
-│   │   ├── index.tsx       # Transactions tab
-│   │   ├── scan.tsx        # Receipt scanner tab
-│   │   └── settings.tsx    # Settings tab
+│   ├── _layout.tsx         # Root layout with providers
+│   └── (tabs)/             # Tab navigation group
+│       ├── _layout.tsx     # Tab configuration (5 tabs + hidden edit)
+│       ├── index.tsx       # Home/transactions tab
+│       ├── add.tsx         # Manual transaction entry
+│       ├── edit.tsx        # Edit existing transaction
+│       ├── scan.tsx        # Receipt scanner with OCR
+│       ├── stats.tsx       # Statistics with charts
+│       └── settings.tsx    # App settings
 ├── components/             # Reusable components
-│   ├── TransactionItem.tsx
-│   ├── TransactionList.tsx
-│   ├── AddTransactionForm.tsx
-│   └── ReceiptScanner.tsx
+│   └── MonthPicker.tsx     # Modal month/year selector
+├── contexts/               # React Context providers
+│   ├── ThemeContext.tsx    # Light/Dark mode management
+│   └── MonthContext.tsx    # Centralized month navigation
+├── hooks/                  # Custom React hooks
+│   ├── useTransactions.ts  # Transaction CRUD + filtering + pagination
+│   └── useStats.ts         # Statistics calculations
 ├── features/
 │   └── transactions/
 │       ├── types.ts        # Same types as web app!
 │       └── constants.ts    # Same categories as web app!
 ├── services/
 │   ├── supabase.ts         # Supabase client
-│   └── ocr.ts              # OCR service calls
+│   ├── ocr.ts              # Gemini 2.5 Flash OCR parsing
+│   └── storage.ts          # Supabase Storage receipt upload
+├── constants/
+│   ├── colors.ts           # Legacy color palette
+│   └── theme.ts            # Complete light/dark theme system
 ├── app.json                # Expo configuration
 └── package.json
 ```
@@ -182,7 +190,7 @@ export const colors = {
 - [x] Auto-fill transaction form from receipt
 - [x] Error handling for OCR failures
 
-**🚧 Phase 4 - Polish & UI/UX (IN PROGRESS):**
+**🚧 Phase 4 - Polish & UI/UX (Sprint 5 remaining):**
 
 ### Sprint 1: Core UX Fixes ✅ COMPLETE
 - [x] Transaction tap-to-edit (edit.tsx screen, updateTransaction hook)
@@ -211,11 +219,11 @@ export const colors = {
 - [ ] Interactive charts (react-native-chart-kit) - deferred, current charts sufficient
 - [ ] Currency/preferences - deferred for future sprint
 
-### Sprint 4: Polish & Animation
-- [ ] Haptic feedback throughout
-- [ ] Micro-interactions (button press effects)
-- [ ] Screen transitions
-- [ ] Dark mode support
+### Sprint 4: Polish & Animation ✅ COMPLETE
+- [x] Haptic feedback throughout (expo-haptics: buttons, nav, delete, save, theme, capture)
+- [x] Micro-interactions (scale(0.95) press effects on buttons, categories, floating add)
+- [x] Screen transitions (slide_from_right in root layout)
+- [x] Dark mode support (ThemeContext with Light/Dark/System, AsyncStorage persistence)
 
 ### Sprint 5: Final Polish
 - [ ] Accessibility audit
