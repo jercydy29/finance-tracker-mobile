@@ -14,6 +14,7 @@ type MonthlyTrend = {
     label: string;
     expenses: number;
     income: number;
+    isSelected?: boolean;
 };
 
 type StatsData = {
@@ -147,10 +148,10 @@ export function useStats() {
                 }))
                 .sort((a, b) => b.amount - a.amount);
 
-            // Fetch last 6 months for trend
+            // Fetch 6 months centered around selected month (3 before, selected, 2 after)
             const trendMonths: MonthlyTrend[] = [];
-            for (let i = 5; i >= 0; i--) {
-                const trendDate = new Date(selectedMonth.year, selectedMonth.month - i, 1);
+            for (let i = -3; i <= 2; i++) {
+                const trendDate = new Date(selectedMonth.year, selectedMonth.month + i, 1);
                 const trendStart = trendDate.toISOString().split('T')[0];
                 const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0)
                     .toISOString().split('T')[0];
@@ -178,6 +179,7 @@ export function useStats() {
                     label: trendDate.toLocaleDateString('en-US', { month: 'short' }),
                     expenses: monthExpenses,
                     income: monthIncome,
+                    isSelected: i === 0, // Mark the selected month
                 });
             }
 

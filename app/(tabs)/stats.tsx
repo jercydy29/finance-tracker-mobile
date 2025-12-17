@@ -233,8 +233,7 @@ export default function StatsScreen() {
                             <View style={styles.trendCard}>
                                 {stats.monthlyTrend.length > 0 ? (
                                     <View style={styles.barChart}>
-                                        {stats.monthlyTrend.map((month, index) => {
-                                            const isActive = index === stats.monthlyTrend.length - 1;
+                                        {stats.monthlyTrend.map((month) => {
                                             const heightPercent = maxExpense > 0
                                                 ? Math.max((month.expenses / maxExpense) * 100, 5)
                                                 : 5;
@@ -245,7 +244,7 @@ export default function StatsScreen() {
                                                     height={heightPercent}
                                                     label={month.label}
                                                     amount={formatCurrency(month.expenses)}
-                                                    isActive={isActive}
+                                                    isActive={month.isSelected}
                                                     styles={styles}
                                                     colors={colors}
                                                 />
