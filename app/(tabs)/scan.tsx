@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { uploadReceiptImage } from '@/services/storage';
 import { parseReceiptImage } from '@/services/ocr';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -11,6 +12,7 @@ import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } fr
 
 export default function ScanScreen() {
     const { colors } = useTheme();
+    const { t } = useLanguage();
     const styles = createStyles(colors);
     const [permission, requestPermission] = useCameraPermissions();
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function ScanScreen() {
                 }
             } catch (error) {
                 console.error('Error taking picture:', error);
-                Alert.alert('Error', 'Failed to take picture');
+                Alert.alert(t('common.error'), t('scan.error'));
             }
         }
     };
@@ -57,11 +59,11 @@ export default function ScanScreen() {
         setUploading(true);
 
         // Step 1: Parse receipt with OCR
-        setProcessingStep('Analyzing receipt...');
+        setProcessingStep(t('scan.analyzing'));
         const { data: parsedData, error: ocrError } = await parseReceiptImage(capturedImage);
 
         // Step 2: Upload image to storage
-        setProcessingStep('Uploading image...');
+        setProcessingStep(t('scan.uploading'));
         const { url, error: uploadError } = await uploadReceiptImage(capturedImage);
 
         setProcessingStep(null);
@@ -69,11 +71,11 @@ export default function ScanScreen() {
 
         if (uploadError) {
             Alert.alert(
-                'Upload Failed', 
-                uploadError || 'Please try again',
+                t('scan.error'),
+                uploadError || t('scan.errorMessage'),
                 [
-                    { text: 'Try Again', onPress: usePhoto },
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('common.retry'), onPress: usePhoto },
+                    { text: t('common.cancel'), style: 'cancel' },
                 ]
             );
             return;
@@ -105,8 +107,8 @@ export default function ScanScreen() {
         // Show contextual feedback based on what was parsed
         if (ocrError) {
             Alert.alert(
-                'Manual Entry Required',
-                'Could not read receipt automatically. Please fill in the details.',
+                t('scan.error'),
+                t('scan.errorMessage'),
                 [{ text: 'OK' }]
             );
         } else if (parsedData) {
@@ -116,12 +118,12 @@ export default function ScanScreen() {
             if (parsedData.category) parsedFields.push('category');
             if (parsedData.description) parsedFields.push('merchant');
             if (parsedData.date) parsedFields.push('date');
-            
+
             if (parsedFields.length < 4) {
                 const missingFields = ['amount', 'category', 'merchant', 'date']
                     .filter(f => !parsedFields.includes(f));
                 Alert.alert(
-                    'Partial Data Extracted',
+                    t('scan.success'),
                     `Please verify and fill in: ${missingFields.join(', ')}`,
                     [{ text: 'OK' }]
                 );
@@ -133,7 +135,7 @@ export default function ScanScreen() {
     if (!permission) {
         return (
             <View style={styles.container}>
-                <Text style={styles.message}>Loading camera...</Text>
+                <Text style={styles.message}>{t('common.loading')}</Text>
             </View>
         );
     }
@@ -144,12 +146,12 @@ export default function ScanScreen() {
             <View style={styles.container}>
                 <View style={styles.permissionContainer}>
                     <Ionicons name="camera-outline" size={64} color={colors.stone400} />
-                    <Text style={styles.permissionTitle}>Camera Access Required</Text>
+                    <Text style={styles.permissionTitle}>{t('scan.permissionTitle')}</Text>
                     <Text style={styles.permissionText}>
-                        We need camera access to scan your receipts
+                        {t('scan.permissionMessage')}
                     </Text>
                     <Pressable style={styles.permissionButton} onPress={requestPermission}>
-                        <Text style={styles.permissionButtonText}>Grant Camera Access</Text>
+                        <Text style={styles.permissionButtonText}>{t('scan.grantPermission')}</Text>
                     </Pressable>
                 </View>
             </View>
@@ -179,7 +181,7 @@ export default function ScanScreen() {
                         disabled={uploading}
                     >
                         <Ionicons name="close" size={24} color={colors.stone800} />
-                        <Text style={styles.secondaryButtonText}>Retake</Text>
+                        <Text style={styles.secondaryButtonText}>{t('scan.retakePhoto')}</Text>
                     </Pressable>
 
                     <Pressable
@@ -188,7 +190,7 @@ export default function ScanScreen() {
                         disabled={uploading}
                     >
                         <Text style={styles.primaryButtonText}>
-                            {uploading ? 'Processing...' : 'Use Photo'}
+                            {uploading ? t('scan.processing') : t('scan.usePhoto')}
                         </Text>
                         {!uploading && <Ionicons name="arrow-forward" size={24} color={colors.white} />}
                     </Pressable>
@@ -203,7 +205,7 @@ export default function ScanScreen() {
             <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashEnabled ? 'on' : 'off'}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerText}>Position receipt in frame</Text>
+                    <Text style={styles.headerText}>{t('scan.captureReceipt')}</Text>
                 </View>
 
                 {/* Camera frame guide */}
@@ -221,7 +223,7 @@ export default function ScanScreen() {
                         onPress={pickImage}
                     >
                         <Ionicons name="images-outline" size={28} color={colors.white} />
-                        <Text style={styles.controlText}>Gallery</Text>
+                        <Text style={styles.controlText}>{t('scan.chooseFromGallery')}</Text>
                     </Pressable>
 
                     <Pressable

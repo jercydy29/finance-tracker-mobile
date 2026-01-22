@@ -1,6 +1,8 @@
 import { MonthPicker } from '@/components/MonthPicker';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useTransactions } from '@/hooks/useTransactions';
+import { getCategoryTranslationKey } from '@/features/transactions/constants';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
@@ -10,6 +12,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 export default function HomeScreen() {
     const { colors } = useTheme();
+    const { t, language } = useLanguage();
     const {
         transactions,
         loading,
@@ -54,12 +57,12 @@ export default function HomeScreen() {
     const handleDelete = useCallback((id: string, title: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
-            'Delete Transaction',
-            `Are you sure you want to delete "${title}"?`,
+            t('home.deleteTitle'),
+            t('home.deleteMessage', { title }),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('common.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         const result = await deleteTransaction(id);
@@ -70,7 +73,7 @@ export default function HomeScreen() {
                 },
             ]
         );
-    }, [deleteTransaction]);
+    }, [deleteTransaction, t]);
 
     // Handle month navigation with haptic feedback
     const handlePreviousMonth = useCallback(() => {
@@ -91,7 +94,8 @@ export default function HomeScreen() {
     }, [setMonth]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ja-JP', {
+        const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'JPY',
         }).format(amount);
@@ -104,11 +108,12 @@ export default function HomeScreen() {
         yesterday.setDate(yesterday.getDate() - 1);
 
         if (date.toDateString() === today.toDateString()) {
-            return 'Today';
+            return t('common.today');
         } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'Yesterday';
+            return t('common.yesterday');
         } else {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+            return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
         }
     };
 
@@ -117,12 +122,12 @@ export default function HomeScreen() {
         <>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.greeting}>Your Finances</Text>
+                <Text style={styles.greeting}>{t('home.title')}</Text>
             </View>
 
             {/* Balance Card */}
             <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>Monthly Balance</Text>
+                <Text style={styles.balanceLabel}>{t('home.monthlyBalance')}</Text>
                 <Text style={styles.balanceAmount} numberOfLines={1} adjustsFontSizeToFit>
                     {formatCurrency(totals.balance)}
                 </Text>
@@ -131,7 +136,7 @@ export default function HomeScreen() {
                     <View style={styles.summaryItemWrapper}>
                         <View style={[styles.indicator, { backgroundColor: colors.emerald600 }]} />
                         <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Income</Text>
+                            <Text style={styles.summaryLabel}>{t('home.income')}</Text>
                             <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
                                 {formatCurrency(totals.income)}
                             </Text>
@@ -141,7 +146,7 @@ export default function HomeScreen() {
                     <View style={styles.summaryItemWrapper}>
                         <View style={[styles.indicator, { backgroundColor: colors.red600 }]} />
                         <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Expenses</Text>
+                            <Text style={styles.summaryLabel}>{t('home.expense')}</Text>
                             <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
                                 {formatCurrency(totals.expenses)}
                             </Text>
@@ -152,7 +157,7 @@ export default function HomeScreen() {
 
             {/* Transactions Header with Month Navigation */}
             <View style={styles.transactionsHeader}>
-                <Text style={styles.transactionsTitle}>Transactions</Text>
+                <Text style={styles.transactionsTitle}>{t('home.transactions')}</Text>
                 <View style={styles.monthNav}>
                     <Pressable
                         onPress={handlePreviousMonth}
@@ -205,7 +210,7 @@ export default function HomeScreen() {
         return (
             <View style={styles.loadingMoreContainer}>
                 <ActivityIndicator size="small" color={colors.amber400} />
-                <Text style={styles.loadingMoreText}>Loading more...</Text>
+                <Text style={styles.loadingMoreText}>{t('home.loadingMore')}</Text>
             </View>
         );
     };
@@ -216,14 +221,14 @@ export default function HomeScreen() {
             return (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.amber400} />
-                    <Text style={styles.loadingText}>Loading transactions...</Text>
+                    <Text style={styles.loadingText}>{t('common.loading')}</Text>
                 </View>
             );
         }
         return (
             <View style={styles.emptyContainer}>
                 <Ionicons name="calendar-outline" size={64} color={colors.stone400} />
-                <Text style={styles.emptyText}>No transactions this month</Text>
+                <Text style={styles.emptyText}>{t('home.noTransactions')}</Text>
                 <Text style={styles.emptySubtext}>Add a transaction or browse other months</Text>
             </View>
         );
@@ -245,6 +250,8 @@ export default function HomeScreen() {
             onDelete={handleDelete}
             colors={colors}
             styles={styles}
+            t={t}
+            language={language}
         />
     );
 
@@ -300,6 +307,8 @@ function TransactionItem({
     onDelete,
     colors,
     styles,
+    t,
+    language,
 }: {
     id: string;
     title: string;
@@ -314,16 +323,22 @@ function TransactionItem({
     onDelete: (id: string, title: string) => void;
     colors: any;
     styles: any;
+    t: (key: string, params?: Record<string, string | number>) => string;
+    language: 'en' | 'ja';
 }) {
     const swipeableRef = useRef<Swipeable>(null);
 
     const formatAmount = (amt: number, isExp: boolean) => {
-        const formatted = new Intl.NumberFormat('ja-JP', {
+        const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+        const formatted = new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'JPY',
         }).format(amt);
         return isExp ? `-${formatted}` : `+${formatted}`;
     };
+
+    // Get translated category name
+    const translatedCategory = t(getCategoryTranslationKey(category, type));
 
     const handlePress = () => {
         router.push({
@@ -352,7 +367,7 @@ function TransactionItem({
                 onPress={handleDeletePress}
             >
                 <Ionicons name="trash-outline" size={24} color={colors.white} />
-                <Text style={styles.deleteActionText}>Delete</Text>
+                <Text style={styles.deleteActionText}>{t('common.delete')}</Text>
             </Pressable>
         );
     };
@@ -371,7 +386,7 @@ function TransactionItem({
                 ]} />
                 <View style={styles.transactionDetails}>
                     <Text style={styles.transactionTitle}>{title}</Text>
-                    <Text style={styles.transactionDate}>{category} • {date}</Text>
+                    <Text style={styles.transactionDate}>{translatedCategory} • {date}</Text>
                 </View>
                 <Text style={[
                     styles.transactionAmount,

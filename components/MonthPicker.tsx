@@ -1,13 +1,14 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-const MONTHS = [
-    'Jan', 'Feb', 'Mar', 'Apr',
-    'May', 'Jun', 'Jul', 'Aug',
-    'Sep', 'Oct', 'Nov', 'Dec',
+const MONTH_KEYS = [
+    'jan', 'feb', 'mar', 'apr',
+    'may', 'jun', 'jul', 'aug',
+    'sep', 'oct', 'nov', 'dec',
 ];
 
 type MonthPickerProps = {
@@ -34,6 +35,7 @@ export function MonthPicker({
     availableYears,
 }: MonthPickerProps) {
     const { colors } = useTheme();
+    const { t } = useLanguage();
     const styles = createStyles(colors);
     const [pickerYear, setPickerYear] = useState(selectedYear);
 
@@ -123,13 +125,13 @@ export function MonthPicker({
 
                     {/* Month Grid (3x4) */}
                     <View style={styles.monthGrid}>
-                        {MONTHS.map((month, index) => {
+                        {MONTH_KEYS.map((monthKey, index) => {
                             const hasTransactions = hasTransactionsInMonth(pickerYear, index);
                             const isSelected = pickerYear === selectedYear && index === selectedMonth;
 
                             return (
                                 <Pressable
-                                    key={month}
+                                    key={monthKey}
                                     style={({ pressed }) => [
                                         styles.monthButton,
                                         hasTransactions && styles.monthButtonEnabled,
@@ -146,7 +148,7 @@ export function MonthPicker({
                                             isSelected && styles.monthTextSelected,
                                         ]}
                                     >
-                                        {month}
+                                        {t(`monthPicker.months.${monthKey}`)}
                                     </Text>
                                 </Pressable>
                             );
@@ -161,7 +163,7 @@ export function MonthPicker({
                         ]}
                         onPress={handleClose}
                     >
-                        <Text style={styles.closeButtonText}>Cancel</Text>
+                        <Text style={styles.closeButtonText}>{t('monthPicker.cancel')}</Text>
                     </Pressable>
                 </Pressable>
             </Pressable>

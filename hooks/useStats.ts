@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/services/supabase';
 import { useMonth } from '@/contexts/MonthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type CategoryBreakdown = {
     category: string;
@@ -52,6 +53,10 @@ export function useStats() {
         isCurrentMonth,
         monthLabel,
     } = useMonth();
+
+    // Get language for locale-aware formatting
+    const { language } = useLanguage();
+    const locale = language === 'ja' ? 'ja-JP' : 'en-US';
 
     const [stats, setStats] = useState<StatsData>({
         income: 0,
@@ -176,7 +181,7 @@ export function useStats() {
 
                 trendMonths.push({
                     month: `${trendDate.getFullYear()}-${trendDate.getMonth()}`,
-                    label: trendDate.toLocaleDateString('en-US', { month: 'short' }),
+                    label: trendDate.toLocaleDateString(locale, { month: 'short' }),
                     expenses: monthExpenses,
                     income: monthIncome,
                     isSelected: i === 0, // Mark the selected month
@@ -198,7 +203,7 @@ export function useStats() {
         } finally {
             setLoading(false);
         }
-    }, [getMonthDateRange, selectedMonth, fetchAvailableMonths]);
+    }, [getMonthDateRange, selectedMonth, fetchAvailableMonths, locale]);
 
     // Check if a specific month has transactions
     const hasTransactionsInMonth = useCallback((year: number, month: number) => {

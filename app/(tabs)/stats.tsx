@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useStats } from '@/hooks/useStats';
 import { MonthPicker } from '@/components/MonthPicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { getCategoryTranslationKey } from '@/features/transactions/constants';
 
 // Try to import react-native-svg, fallback to simple view if not available
 let Svg: any, Path: any, Circle: any;
@@ -21,6 +23,7 @@ try {
 
 export default function StatsScreen() {
     const { colors } = useTheme();
+    const { t, language } = useLanguage();
     const styles = createStyles(colors);
     const {
         stats,
@@ -63,7 +66,8 @@ export default function StatsScreen() {
     }, [refetch]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ja-JP', {
+        const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'JPY',
         }).format(amount);
@@ -101,7 +105,7 @@ export default function StatsScreen() {
             >
                 {/* Header with Month Navigation */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Statistics</Text>
+                    <Text style={styles.title}>{t('stats.title')}</Text>
                     <View style={styles.monthNav}>
                         <Pressable
                             onPress={handlePreviousMonth}
@@ -149,20 +153,20 @@ export default function StatsScreen() {
                 {loading && stats.income === 0 && stats.expenses === 0 ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={colors.amber400} />
-                        <Text style={styles.loadingText}>Loading statistics...</Text>
+                        <Text style={styles.loadingText}>{t('common.loading')}</Text>
                     </View>
                 ) : (
                     <>
                         {/* Income/Expenses Cards */}
                         <View style={styles.summaryCards}>
                             <View style={[styles.card, { backgroundColor: colors.mintGreen }]}>
-                                <Text style={styles.cardLabel}>Income</Text>
+                                <Text style={styles.cardLabel}>{t('stats.income')}</Text>
                                 <Text style={[styles.cardAmount, { color: colors.emerald700 }]}>
                                     {formatCurrency(stats.income)}
                                 </Text>
                             </View>
                             <View style={[styles.card, { backgroundColor: colors.lightPink }]}>
-                                <Text style={styles.cardLabel}>Expenses</Text>
+                                <Text style={styles.cardLabel}>{t('stats.expense')}</Text>
                                 <Text style={[styles.cardAmount, { color: colors.red600 }]}>
                                     {formatCurrency(stats.expenses)}
                                 </Text>
@@ -172,7 +176,7 @@ export default function StatsScreen() {
                         {/* Balance Card */}
                         <View style={styles.section}>
                             <View style={styles.balanceCard}>
-                                <Text style={styles.balanceLabel}>Net Balance</Text>
+                                <Text style={styles.balanceLabel}>{t('stats.netBalance')}</Text>
                                 <Text style={[
                                     styles.balanceAmount,
                                     { color: stats.balance >= 0 ? colors.emerald600 : colors.red600 }
@@ -184,7 +188,7 @@ export default function StatsScreen() {
 
                         {/* Expense Breakdown */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Expense Breakdown</Text>
+                            <Text style={styles.sectionTitle}>{t('stats.categoryBreakdown')}</Text>
                             <View style={styles.breakdownCard}>
                                 {stats.categoryBreakdown.length > 0 ? (
                                     <>
@@ -206,22 +210,25 @@ export default function StatsScreen() {
 
                                         {/* Legend with real data */}
                                         <View style={styles.legend}>
-                                            {stats.categoryBreakdown.map((item) => (
-                                                <LegendItem
-                                                    key={item.category}
-                                                    color={item.color}
-                                                    label={item.category}
-                                                    amount={formatCurrency(item.amount)}
-                                                    percentage={`${item.percentage}%`}
-                                                    styles={styles}
-                                                />
-                                            ))}
+                                            {stats.categoryBreakdown.map((item) => {
+                                                const translationKey = getCategoryTranslationKey(item.category, 'expense');
+                                                return (
+                                                    <LegendItem
+                                                        key={item.category}
+                                                        color={item.color}
+                                                        label={t(translationKey)}
+                                                        amount={formatCurrency(item.amount)}
+                                                        percentage={`${item.percentage}%`}
+                                                        styles={styles}
+                                                    />
+                                                );
+                                            })}
                                         </View>
                                     </>
                                 ) : (
                                     <View style={styles.emptyState}>
                                         <Ionicons name="pie-chart-outline" size={48} color={colors.stone300} />
-                                        <Text style={styles.emptyText}>No expenses this month</Text>
+                                        <Text style={styles.emptyText}>{t('stats.noData')}</Text>
                                     </View>
                                 )}
                             </View>
@@ -229,7 +236,7 @@ export default function StatsScreen() {
 
                         {/* Monthly Trend */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Monthly Trend (Expenses)</Text>
+                            <Text style={styles.sectionTitle}>{t('stats.monthlyTrend')}</Text>
                             <View style={styles.trendCard}>
                                 {stats.monthlyTrend.length > 0 ? (
                                     <View style={styles.barChart}>
@@ -254,7 +261,7 @@ export default function StatsScreen() {
                                 ) : (
                                     <View style={styles.emptyState}>
                                         <Ionicons name="bar-chart-outline" size={48} color={colors.stone300} />
-                                        <Text style={styles.emptyText}>No data available</Text>
+                                        <Text style={styles.emptyText}>{t('stats.noData')}</Text>
                                     </View>
                                 )}
                             </View>

@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/features/transactions/constants';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryTranslationKey } from '@/features/transactions/constants';
 import type { TransactionType } from '@/features/transactions/types';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import {
 
 export default function AddScreen() {
     const { colors } = useTheme();
+    const { t, language } = useLanguage();
     const styles = createStyles(colors);
     const params = useLocalSearchParams<{
         receiptUrl?: string;
@@ -42,11 +44,12 @@ export default function AddScreen() {
     const [receiptUrl, setReceiptUrl] = useState(params.receiptUrl || '');
     const [saving, setSaving] = useState(false);
 
-    // Format number with commas
+    // Format number with commas (locale-aware)
     const formatWithCommas = (value: string) => {
         const num = value.replace(/,/g, '');
         if (!num) return '';
-        return Number(num).toLocaleString('ja-JP');
+        const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+        return Number(num).toLocaleString(locale);
     };
 
     // Handle amount change with formatting
@@ -72,12 +75,12 @@ export default function AddScreen() {
     const handleRemoveReceipt = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
-            'Remove Receipt',
-            'This will also clear the auto-filled fields (amount, category, description, date). Continue?',
+            t('add.removeReceipt'),
+            t('add.removeReceiptMessage'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Remove',
+                    text: t('common.remove'),
                     style: 'destructive',
                     onPress: () => {
                         setReceiptUrl('');
@@ -110,15 +113,15 @@ export default function AddScreen() {
     const handleSave = async () => {
         // Validation
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Validation Error', 'Please enter a valid amount');
+            Alert.alert(t('common.error'), t('add.errorAmount'));
             return;
         }
         if (!category) {
-            Alert.alert('Validation Error', 'Please select a category');
+            Alert.alert(t('common.error'), t('add.errorCategory'));
             return;
         }
         if (!date) {
-            Alert.alert('Validation Error', 'Please enter a date');
+            Alert.alert(t('common.error'), t('add.errorAmount'));
             return;
         }
 
@@ -139,7 +142,7 @@ export default function AddScreen() {
 
         if (result.success) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Success', 'Transaction added successfully!', [
+            Alert.alert(t('common.success'), t('add.success'), [
                 {
                     text: 'OK',
                     onPress: () => {
@@ -156,7 +159,7 @@ export default function AddScreen() {
                 },
             ]);
         } else {
-            Alert.alert('Error', result.error || 'Failed to add transaction');
+            Alert.alert(t('common.error'), result.error || 'Failed to add transaction');
         }
     };
 
@@ -173,7 +176,7 @@ export default function AddScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Add Transaction</Text>
+                        <Text style={styles.title}>{t('add.title')}</Text>
                     </View>
 
                     {/* Type Toggle */}
@@ -193,7 +196,7 @@ export default function AddScreen() {
                                     type === 'expense' && styles.typeButtonTextActive,
                                 ]}
                             >
-                                Expense
+                                {t('home.expense')}
                             </Text>
                         </Pressable>
                         <Pressable
@@ -211,14 +214,14 @@ export default function AddScreen() {
                                     type === 'income' && styles.typeButtonTextActive,
                                 ]}
                             >
-                                Income
+                                {t('home.income')}
                             </Text>
                         </Pressable>
                     </View>
 
                     {/* Amount Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Amount</Text>
+                        <Text style={styles.label}>{t('add.amount')}</Text>
                         <View style={styles.amountInputContainer}>
                             <Text style={styles.currencySymbol}>¥</Text>
                             <TextInput
@@ -234,7 +237,7 @@ export default function AddScreen() {
 
                     {/* Category Picker */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Category</Text>
+                        <Text style={styles.label}>{t('add.category')}</Text>
                         <View style={styles.categoryGrid}>
                             {(type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(
                                 (cat) => (
@@ -256,7 +259,7 @@ export default function AddScreen() {
                                                 category === cat && styles.categoryButtonTextActive,
                                             ]}
                                         >
-                                            {cat}
+                                            {t(getCategoryTranslationKey(cat, type))}
                                         </Text>
                                     </Pressable>
                                 )
@@ -266,12 +269,12 @@ export default function AddScreen() {
 
                     {/* Description Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Description (Optional)</Text>
+                        <Text style={styles.label}>{t('add.description')}</Text>
                         <TextInput
                             style={styles.textInput}
                             value={description}
                             onChangeText={setDescription}
-                            placeholder="Add a note..."
+                            placeholder={t('add.descriptionPlaceholder')}
                             placeholderTextColor={colors.stone400}
                             multiline
                         />
@@ -279,7 +282,7 @@ export default function AddScreen() {
 
                     {/* Date Picker */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Date</Text>
+                        <Text style={styles.label}>{t('add.date')}</Text>
                         <DateTimePicker
                             value={date}
                             mode="date"
@@ -293,10 +296,10 @@ export default function AddScreen() {
                     {receiptUrl && (
                         <View style={styles.inputGroup}>
                             <View style={styles.labelRow}>
-                                <Text style={styles.labelInRow}>Attached Receipt</Text>
+                                <Text style={styles.labelInRow}>{t('add.receipt')}</Text>
                                 <Pressable onPress={handleRemoveReceipt} style={styles.removeButton}>
                                     <Ionicons name="close-circle" size={20} color={colors.red600} />
-                                    <Text style={styles.removeButtonText}>Remove</Text>
+                                    <Text style={styles.removeButtonText}>{t('common.remove')}</Text>
                                 </Pressable>
                             </View>
                             <View style={styles.receiptPreview}>
@@ -307,7 +310,7 @@ export default function AddScreen() {
                                 />
                                 <View style={styles.receiptInfo}>
                                     <Ionicons name="checkmark-circle" size={20} color={colors.emerald600} />
-                                    <Text style={styles.receiptText}>Receipt attached</Text>
+                                    <Text style={styles.receiptText}>{t('add.receipt')}</Text>
                                 </View>
                             </View>
                         </View>
@@ -324,7 +327,7 @@ export default function AddScreen() {
                         disabled={saving}
                     >
                         <Text style={styles.saveButtonText}>
-                            {saving ? 'Saving...' : 'Add Transaction'}
+                            {saving ? t('common.loading') : t('add.addTransaction')}
                         </Text>
                     </Pressable>
                 </ScrollView>

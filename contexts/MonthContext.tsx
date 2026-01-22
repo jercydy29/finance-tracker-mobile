@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type SelectedMonth = {
     year: number;
@@ -17,6 +18,8 @@ type MonthContextType = {
 const MonthContext = createContext<MonthContextType | undefined>(undefined);
 
 export function MonthProvider({ children }: { children: ReactNode }) {
+    const { language } = useLanguage();
+
     // Selected month state (defaults to current month)
     const [selectedMonth, setSelectedMonth] = useState<SelectedMonth>(() => {
         const now = new Date();
@@ -52,9 +55,10 @@ export function MonthProvider({ children }: { children: ReactNode }) {
     const now = new Date();
     const isCurrentMonth = selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
 
-    // Get formatted month label
+    // Get formatted month label (locale-aware)
     const date = new Date(selectedMonth.year, selectedMonth.month);
-    const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+    const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+    const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
 
     return (
         <MonthContext.Provider value={{

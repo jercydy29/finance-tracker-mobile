@@ -1,5 +1,6 @@
 import { ThemeMode } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/services/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -19,6 +20,7 @@ type SettingItem = {
 
 export default function SettingsScreen() {
     const { colors, themeMode, setThemeMode, isDark } = useTheme();
+    const { t, language, setLanguage } = useLanguage();
     const [transactionCount, setTransactionCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState(false);
@@ -85,41 +87,70 @@ export default function SettingsScreen() {
     const handleThemeChange = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Alert.alert(
-            'Choose Theme',
-            'Select your preferred appearance',
+            t('settings.selectTheme'),
+            '',
             [
                 {
-                    text: 'Light',
+                    text: t('settings.themeLight'),
                     onPress: () => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         setThemeMode('light');
                     },
                 },
                 {
-                    text: 'Dark',
+                    text: t('settings.themeDark'),
                     onPress: () => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         setThemeMode('dark');
                     },
                 },
                 {
-                    text: 'System',
+                    text: t('settings.themeSystem'),
                     onPress: () => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         setThemeMode('system');
                     },
                 },
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
             ]
         );
     };
 
     const getThemeLabel = (mode: ThemeMode): string => {
         switch (mode) {
-            case 'light': return 'Light';
-            case 'dark': return 'Dark';
-            case 'system': return 'System';
+            case 'light': return t('settings.themeLight');
+            case 'dark': return t('settings.themeDark');
+            case 'system': return t('settings.themeSystem');
         }
+    };
+
+    const handleLanguageChange = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Alert.alert(
+            t('settings.selectLanguage'),
+            '',
+            [
+                {
+                    text: 'English',
+                    onPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setLanguage('en');
+                    },
+                },
+                {
+                    text: '日本語',
+                    onPress: () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setLanguage('ja');
+                    },
+                },
+                { text: t('common.cancel'), style: 'cancel' },
+            ]
+        );
+    };
+
+    const getLanguageLabel = (): string => {
+        return language === 'ja' ? '日本語' : 'English';
     };
 
     const handleExportData = () => {
@@ -127,8 +158,8 @@ export default function SettingsScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         Alert.alert(
-            'Export Transactions',
-            'Choose export range',
+            t('settings.exportData'),
+            t('settings.selectDateRange'),
             [
                 {
                     text: 'By Month',
@@ -147,10 +178,10 @@ export default function SettingsScreen() {
                     },
                 },
                 {
-                    text: 'Lifetime',
+                    text: t('settings.allTime'),
                     onPress: () => performExport('lifetime'),
                 },
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
             ]
         );
     };
@@ -209,7 +240,7 @@ export default function SettingsScreen() {
             if (error) throw error;
 
             if (!transactions || transactions.length === 0) {
-                Alert.alert('No Data', 'There are no transactions for the selected period.');
+                Alert.alert(t('stats.noData'), 'There are no transactions for the selected period.');
                 return;
             }
 
@@ -236,7 +267,7 @@ export default function SettingsScreen() {
 
             if (!(await Sharing.isAvailableAsync())) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert('Error', 'Sharing is not available on this device');
+                Alert.alert(t('common.error'), 'Sharing is not available on this device');
                 return;
             }
 
@@ -254,7 +285,7 @@ export default function SettingsScreen() {
         } catch (error) {
             console.error('Export error:', error);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert('Export Failed', 'Could not export transactions. Please try again.');
+            Alert.alert(t('settings.exportError'), 'Could not export transactions. Please try again.');
         } finally {
             setExporting(false);
         }
@@ -263,12 +294,12 @@ export default function SettingsScreen() {
     const handleClearData = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Alert.alert(
-            'Clear All Data',
-            'Are you sure you want to delete ALL transactions? This action cannot be undone.',
+            t('settings.clearData'),
+            t('settings.clearDataMessage'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete All',
+                    text: t('common.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -280,11 +311,11 @@ export default function SettingsScreen() {
                             if (error) throw error;
 
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            Alert.alert('Success', 'All transactions have been deleted.');
+                            Alert.alert(t('common.success'), t('settings.clearSuccess'));
                             setTransactionCount(0);
                         } catch (error) {
                             console.error('Error clearing data:', error);
-                            Alert.alert('Error', 'Failed to clear data. Please try again.');
+                            Alert.alert(t('common.error'), 'Failed to clear data. Please try again.');
                         }
                     },
                 },
@@ -300,8 +331,8 @@ export default function SettingsScreen() {
     const handleAbout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Alert.alert(
-            'About Finance Tracker',
-            `Version ${appVersion}\n\nA simple and beautiful finance tracking app built with React Native and Expo.\n\nTrack your expenses, scan receipts, and stay on top of your finances.`,
+            t('settings.about'),
+            `${t('settings.version')} ${appVersion}\n\nA simple and beautiful finance tracking app built with React Native and Expo.\n\nTrack your expenses, scan receipts, and stay on top of your finances.`,
             [{ text: 'OK' }]
         );
     };
@@ -323,22 +354,28 @@ export default function SettingsScreen() {
     const appearanceSettings: SettingItem[] = [
         {
             icon: isDark ? 'moon' : 'sunny',
-            label: 'Appearance',
+            label: t('settings.theme'),
             value: getThemeLabel(themeMode),
             onPress: handleThemeChange,
+        },
+        {
+            icon: 'language',
+            label: t('settings.language'),
+            value: getLanguageLabel(),
+            onPress: handleLanguageChange,
         },
     ];
 
     const dataSettings: SettingItem[] = [
         {
             icon: 'download-outline',
-            label: 'Export Data',
+            label: t('settings.exportData'),
             value: exporting ? 'Exporting...' : `${transactionCount} transactions`,
             onPress: handleExportData,
         },
         {
             icon: 'trash-outline',
-            label: 'Clear All Data',
+            label: t('settings.clearData'),
             onPress: handleClearData,
 
         },
@@ -352,7 +389,7 @@ export default function SettingsScreen() {
         },
         {
             icon: 'information-circle-outline',
-            label: 'About',
+            label: t('settings.about'),
             value: `v${appVersion}`,
             onPress: handleAbout,
         },
@@ -366,7 +403,7 @@ export default function SettingsScreen() {
         },
         {
             icon: 'mail-outline',
-            label: 'Send Feedback',
+            label: t('settings.feedback'),
             onPress: handleSendFeedback,
         },
     ];
@@ -378,12 +415,12 @@ export default function SettingsScreen() {
             <ScrollView style={styles.scrollView}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Settings</Text>
+                    <Text style={styles.title}>{t('settings.title')}</Text>
                 </View>
 
                 {/* Appearance Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Appearance</Text>
+                    <Text style={styles.sectionTitle}>{t('settings.appearance')}</Text>
                     <View style={styles.card}>
                         {appearanceSettings.map((item, index) => (
                             <SettingRow
@@ -398,7 +435,7 @@ export default function SettingsScreen() {
 
                 {/* Data Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Data</Text>
+                    <Text style={styles.sectionTitle}>{t('settings.data')}</Text>
                     <View style={styles.card}>
                         {dataSettings.map((item, index) => (
                             <SettingRow
@@ -413,7 +450,7 @@ export default function SettingsScreen() {
 
                 {/* App Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>App</Text>
+                    <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
                     <View style={styles.card}>
                         {appSettings.map((item, index) => (
                             <SettingRow
@@ -460,7 +497,7 @@ export default function SettingsScreen() {
                 >
                     <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
                         <Text style={styles.modalTitle}>
-                            {exportType === 'month' ? 'Select Month' : 'Select Year'}
+                            {exportType === 'month' ? t('monthPicker.title') : 'Select Year'}
                         </Text>
 
                         {/* Year Navigation */}
@@ -543,7 +580,7 @@ export default function SettingsScreen() {
                                 style={styles.cancelButton}
                                 onPress={() => setShowExportPicker(false)}
                             >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
                             </Pressable>
                             {(() => {
                                 const canExport = exportType === 'month'

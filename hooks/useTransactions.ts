@@ -2,10 +2,15 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/services/supabase';
 import type { Transaction } from '@/features/transactions/types';
 import { useMonth } from '@/contexts/MonthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const PAGE_SIZE = 10;
 
 export function useTransactions() {
+    // Get language for locale-aware formatting
+    const { language } = useLanguage();
+    const locale = language === 'ja' ? 'ja-JP' : 'en-US';
+
     // Use shared month state from context
     const {
         selectedMonth,
